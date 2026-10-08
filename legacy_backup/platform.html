@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ritual.ai — How The AI Platform Works (Visual Architecture)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --c1: #00b4ff;
+    --c2: #7a3cff;
+    --c3: #00e0b8;
+    --ink: #0f172a;
+    --text-muted: #475569;
+  }
+  * { scroll-behavior: smooth; }
+  body {
+    font-family: 'Instrument Sans', system-ui, sans-serif;
+    background: #ffffff;
+    color: var(--ink);
+    position: relative;
+    overflow-x: hidden;
+  }
+  h1, h2, h3, h4, .disp {
+    font-family: 'Sora', sans-serif;
+    letter-spacing: -0.025em;
+  }
+  .mono {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  
+  /* Crisp White Card System */
+  .white-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+    transition: all 0.25s ease;
+  }
+  .white-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.08);
+  }
+
+  /* Distinct Step Number Badges */
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    background: linear-gradient(120deg, var(--c1), var(--c2));
+    color: #ffffff;
+    border-radius: 12px;
+    padding: 0.65rem 1.3rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: 0.2s;
+    box-shadow: 0 6px 18px -4px rgba(100, 70, 255, 0.4);
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px -4px rgba(100, 70, 255, 0.55);
+  }
+  .btn-secondary {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 0.65rem 1.2rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: 0.2s;
+  }
+  .btn-secondary:hover {
+    border-color: var(--c1);
+    color: #0284c7;
+    background: #f8fafc;
+  }
+
+  /* City selection button */
+  .city-pill {
+    padding: 0.6rem 1.1rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: #334155;
+    cursor: pointer;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .city-pill:hover {
+    border-color: var(--c1);
+    background: #f0f9ff;
+    color: #0284c7;
+  }
+  .city-pill.active {
+    background: linear-gradient(120deg, var(--c1), var(--c2));
+    color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 6px 18px -4px rgba(100, 70, 255, 0.45);
+  }
+
+  /* Tags / Status pills */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .tag-blue { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+  .tag-green { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+  .tag-purple { background: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+  .tag-amber { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+
+  /* Flow Arrow Indicator */
+  .arrow-node {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    font-weight: 700;
+  }
+
+  /* Phone Mockup (Clean White Screen) */
+  .clean-phone {
+    width: 100%;
+    max-width: 340px;
+    border-radius: 36px;
+    background: #ffffff;
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.12);
+  }
+  .clean-phone-inner {
+    border-radius: 26px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    min-height: 440px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Tab Button */
+  .feature-tab {
+    padding: 0.65rem 1.2rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: #64748b;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .feature-tab.active {
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Roadmap Timeline Bar */
+  .roadmap-bar {
+    position: relative;
+    padding-left: 28px;
+    border-left: 2px solid #e2e8f0;
+  }
+  .roadmap-bar::before {
+    content: "";
+    position: absolute;
+    left: -7px;
+    top: 4px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #0284c7;
+    border: 2px solid #ffffff;
+    box-shadow: 0 0 0 2px #0284c7;
+  }
+</style>
+</head>
+<body class="bg-white text-slate-900">
+
+<!-- 1. Header Navigation -->
+<header class="border-b border-slate-200 bg-white sticky top-0 z-50">
+  <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="disp font-bold text-xl tracking-tight text-slate-900">Ritual<span style="background:linear-gradient(120deg,#00b4ff,#7a3cff);-webkit-background-clip:text;background-clip:text;color:transparent">.ai</span></a>
+      <span class="tag tag-blue hidden sm:inline-flex">Visual System Architecture</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <a href="index.html" class="btn-primary text-xs py-2 px-3.5">
+        <span>🎙️ Open Live AI Voice Chat</span>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-5 py-12 space-y-20">
+
+  <!-- ========================================================
+       HERO: INSTANT SUMMARY AT A GLANCE
+       ======================================================== -->
+  <section class="text-center max-w-4xl mx-auto">
+    <span class="tag tag-blue mb-4">Transparent Capabilities & Process</span>
+    <h1 class="text-4xl sm:text-6xl font-extrabold text-slate-900 leading-[1.1] tracking-tight">
+      What Does This Platform <br>
+      <span style="background:linear-gradient(120deg,#00b4ff,#7a3cff);-webkit-background-clip:text;background-clip:text;color:transparent">Actually Do For Your Business?</span>
+    </h1>
+    <p class="text-slate-600 text-lg sm:text-xl mt-5 max-w-2xl mx-auto leading-relaxed">
+      No complex technical jargon. Explore the 5 interactive visual modules below to see exactly how our AI speaks, adapts locally, and automates your customer pipeline.
+    </p>
+
+    <!-- 5 Quick-Jump Visual Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-10 text-left">
+      <a href="#feature-1" class="white-card p-4 hover:border-sky-400">
+        <div class="step-badge bg-sky-100 text-sky-700 mb-2">01</div>
+        <div class="font-bold text-sm text-slate-900">Geo Language</div>
+        <div class="text-xs text-slate-500 mt-1">Auto-shifts by city/country</div>
+      </a>
+      <a href="#feature-2" class="white-card p-4 hover:border-purple-400">
+        <div class="step-badge bg-purple-100 text-purple-700 mb-2">02</div>
+        <div class="font-bold text-sm text-slate-900">2-Year AI Brain</div>
+        <div class="text-xs text-slate-500 mt-1">Honest & transparent advice</div>
+      </a>
+      <a href="#feature-3" class="white-card p-4 hover:border-teal-400">
+        <div class="step-badge bg-teal-100 text-teal-700 mb-2">03</div>
+        <div class="font-bold text-sm text-slate-900">SEO & Custom Agent</div>
+        <div class="text-xs text-slate-500 mt-1">Viral Reels + Product matcher</div>
+      </a>
+      <a href="#feature-4" class="white-card p-4 hover:border-green-400">
+        <div class="step-badge bg-green-100 text-green-700 mb-2">04</div>
+        <div class="font-bold text-sm text-slate-900">WhatsApp Dispatch</div>
+        <div class="text-xs text-slate-500 mt-1">Hot leads sent instantly</div>
+      </a>
+      <a href="#feature-5" class="white-card p-4 hover:border-amber-400">
+        <div class="step-badge bg-amber-100 text-amber-700 mb-2">05</div>
+        <div class="font-bold text-sm text-slate-900">Timeline Estimator</div>
+        <div class="text-xs text-slate-500 mt-1">Exact launch roadmap</div>
+      </a>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       FEATURE 1: GEO-LOCATION & AUTOMATIC LOCAL LANGUAGE SWITCH
+       ======================================================== -->
+  <section id="feature-1" class="pt-6">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="step-badge bg-sky-500 text-white">1</span>
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Instant Geo-Location & Local Language Shift</h2>
+    </div>
+    <p class="text-slate-600 max-w-3xl mb-6">
+      When visitors land on your website, our system detects their city/country within <strong>50 milliseconds</strong> and immediately switches the text, currency, and AI voice to their native language.
+    </p>
+
+    <div class="white-card p-6 sm:p-8">
+      <!-- City Selector Buttons -->
+      <div class="text-xs font-bold text-slate-400 mono uppercase mb-3">Interactive Demo — Click any city to test instant adaptation:</div>
+      <div class="flex flex-wrap gap-2.5 mb-6" id="cityPills">
+        <button class="city-pill active" data-city="Kolkata" data-country="India 🇮🇳" data-lang="Bengali & Hindi Accent" data-currency="₹ INR" data-speed="18ms" data-greet="Hello! We are Ritual AI. We manage targeted Meta ads, viral reels, and automated customer qualification for businesses across India.">
+          <span>🇮🇳</span> Kolkata, India
+        </button>
+        <button class="city-pill" data-city="Berlin" data-country="Germany 🇩🇪" data-lang="German (Deutsch)" data-currency="€ EUR" data-speed="28ms" data-greet="Hallo! Ich bin die Ritual-KI. Wir starten gezielte Anzeigen und qualifizieren Kundenanfragen automatisch auf Deutsch.">
+          <span>🇩🇪</span> Berlin, Germany
+        </button>
+        <button class="city-pill" data-city="Paris" data-country="France 🇫🇷" data-lang="French (Français)" data-currency="€ EUR" data-speed="32ms" data-greet="Bonjour ! Je suis l'IA de Ritual. Nous qualifions chaque prospect et alertons votre équipe instantanément.">
+          <span>🇫🇷</span> Paris, France
+        </button>
+        <button class="city-pill" data-city="Madrid" data-country="Spain 🇪🇸" data-lang="Spanish (Español)" data-currency="€ EUR" data-speed="34ms" data-greet="¡Hola! Soy la IA de Ritual. Gestionamos campañas con IA y automatizamos tus clientes potenciales al instante.">
+          <span>🇪🇸</span> Madrid, Spain
+        </button>
+        <button class="city-pill" data-city="New York" data-country="United States 🇺🇸" data-lang="English (US)" data-currency="$ USD" data-speed="15ms" data-greet="Hi there! Welcome to Ritual AI. We deploy custom business agents, viral short-form reels, and automated WhatsApp CRM funnels.">
+          <span>🇺🇸</span> New York, USA
+        </button>
+      </div>
+
+      <!-- Live Visual Results Box (All White Screen) -->
+      <div class="grid md:grid-cols-12 gap-6 items-stretch">
+        <!-- Detection Sensor Panel -->
+        <div class="md:col-span-5 border border-slate-200 rounded-2xl p-5 bg-slate-50 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-xs mono text-slate-500 border-b border-slate-200 pb-2 mb-4">
+              <span>IP GEO-LOCATION SENSOR</span>
+              <span class="text-emerald-600 font-bold flex items-center gap-1">● DETECTED</span>
+            </div>
+            <div class="space-y-3">
+              <div class="bg-white p-3.5 rounded-xl border border-slate-200">
+                <div class="text-xs text-slate-400 mono">DETECTED VISITOR LOCATION:</div>
+                <div id="vCity" class="text-2xl font-extrabold text-slate-900 mt-0.5">Kolkata</div>
+                <div id="vCountry" class="text-xs font-semibold text-sky-600">India 🇮🇳</div>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-xs mono">
+                <div class="bg-white p-2.5 rounded-xl border border-slate-200">
+                  <span class="text-slate-400 block text-[10px]">LANGUAGE:</span>
+                  <b id="vLang" class="text-slate-800">Bengali / Hindi</b>
+                </div>
+                <div class="bg-white p-2.5 rounded-xl border border-slate-200">
+                  <span class="text-slate-400 block text-[10px]">CURRENCY:</span>
+                  <b id="vCurrency" class="text-emerald-600 font-bold">₹ INR</b>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-200 text-xs text-slate-500 flex items-center justify-between">
+            <span>Detection Latency:</span>
+            <b id="vSpeed" class="text-sky-600 font-mono">18ms</b>
+          </div>
+        </div>
+
+        <!-- Live Website Adaptation Display -->
+        <div class="md:col-span-7 border border-slate-200 rounded-2xl p-6 bg-white flex flex-col justify-between shadow-sm">
+          <div>
+            <div class="flex items-center justify-between text-xs text-slate-400 mono border-b border-slate-100 pb-3 mb-4">
+              <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+                <span>LIVE USER EXPERIENCE PREVIEW</span>
+              </div>
+              <span class="tag tag-green">Zero Page Reload</span>
+            </div>
+
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-xl">
+                🎙️
+              </div>
+              <div>
+                <div class="font-bold text-sm text-slate-900">Ritual Voice & Text AI</div>
+                <div class="text-xs text-slate-500">Auto-tuned to visitor's native region</div>
+              </div>
+            </div>
+
+            <!-- Greeting Text Bubble -->
+            <div id="vGreetBox" class="p-4 rounded-xl border border-sky-100 bg-sky-50/50 text-slate-800 text-sm leading-relaxed font-medium">
+              "Hello! We are Ritual AI. We manage targeted Meta ads, viral reels, and automated customer qualification for businesses across India."
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>⚡ Result: Client immediately feels understood</span>
+            <b class="text-sky-600">+42% Higher Inquiry Rate</b>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       FEATURE 2: 2+ YEARS DOMAIN EXPERIENCE AI BRAIN
+       ======================================================== -->
+  <section id="feature-2" class="pt-6">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="step-badge bg-purple-600 text-white">2</span>
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Trained on 2+ Years Experience (100% Transparent Consultation)</h2>
+    </div>
+    <p class="text-slate-600 max-w-3xl mb-6">
+      Instead of giving robotic answers or forcing visitors to fill empty forms, our AI acts like your top senior marketing consultant—giving completely honest, transparent advice that builds instant trust.
+    </p>
+
+    <!-- Side-by-side Visual Comparison -->
+    <div class="grid md:grid-cols-2 gap-6">
+      <!-- Standard Dumb Bot Card -->
+      <div class="white-card p-6 border-red-200 bg-red-50/10">
+        <div class="flex items-center justify-between pb-3 border-b border-red-100 mb-4">
+          <span class="tag bg-red-100 text-red-700 border border-red-200">❌ Typical Chatbot (No Experience)</span>
+          <span class="text-xs text-red-600 font-semibold mono">Customer Drops Off</span>
+        </div>
+        <div class="space-y-3 text-xs sm:text-sm">
+          <div class="p-3 rounded-xl bg-white border border-slate-200">
+            <b class="text-slate-700">Client:</b> "I have a $500 monthly budget. Should I start with SEO or Meta Video Ads?"
+          </div>
+          <div class="p-3 rounded-xl bg-red-50 border border-red-200 text-red-900">
+            <b class="text-red-700">Generic Bot:</b> "Please enter your name, email, and phone number so a sales representative can contact you in 48 hours."
+          </div>
+        </div>
+        <div class="mt-5 p-3 rounded-xl bg-white border border-red-100 text-xs text-slate-500">
+          ⚠️ <strong>Result:</strong> Zero trust created. The client closes the tab without providing their information.
+        </div>
+      </div>
+
+      <!-- Ritual AI Card -->
+      <div class="white-card p-6 border-emerald-200 bg-emerald-50/10">
+        <div class="flex items-center justify-between pb-3 border-b border-emerald-100 mb-4">
+          <span class="tag tag-green">✅ Ritual AI (2+ Years Domain Data)</span>
+          <span class="text-xs text-emerald-700 font-semibold mono">Instant Credibility</span>
+        </div>
+        <div class="space-y-3 text-xs sm:text-sm">
+          <div class="p-3 rounded-xl bg-white border border-slate-200">
+            <b class="text-slate-700">Client:</b> "I have a $500 monthly budget. Should I start with SEO or Meta Video Ads?"
+          </div>
+          <div class="p-3.5 rounded-xl bg-white border border-emerald-300 text-slate-900 leading-relaxed shadow-sm">
+            <div class="text-xs font-bold text-emerald-700 mb-1 flex items-center gap-1">
+              <span>🧠 Veteran Experience Advice:</span>
+            </div>
+            "To be completely transparent with you: spending $500 on SEO right now would be a mistake because SEO requires 3 to 6 months to generate returns. Based on 2+ years of campaign data, you should put $400 into <strong>Meta Video Ads + Short Reels</strong> to generate leads starting from Day 3, and save $100 for automated WhatsApp follow-ups. Is your sales team ready to receive inquiries?"
+          </div>
+        </div>
+        <div class="mt-5 p-3 rounded-xl bg-white border border-emerald-100 text-xs text-slate-700 font-medium">
+          ✨ <strong>Client Reaction:</strong> "This AI genuinely cares about my business ROI instead of just trying to sell."
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       FEATURE 3: COMPLETE GROWTH STACK, CUSTOM AGENT & PRODUCT SUGGESTER
+       ======================================================== -->
+  <section id="feature-3" class="pt-6">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="step-badge bg-teal-500 text-white">3</span>
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">SEO, Reels Engine, Custom Agent & Smart Product Matching</h2>
+    </div>
+    <p class="text-slate-600 max-w-3xl mb-6">
+      We build a dedicated AI Agent tailored specifically to your business catalog. It handles SEO, script creation for reels, and automatically matches customers to the exact right product.
+    </p>
+
+    <div class="white-card p-6 sm:p-8">
+      <!-- 3 Clear Tabs -->
+      <div class="flex flex-wrap gap-2 p-1.5 rounded-xl bg-slate-100 mb-8 max-w-2xl" id="featureTabs">
+        <button class="feature-tab active" data-target="tab-seo-reels">1. SEO & Viral Reels Engine</button>
+        <button class="feature-tab" data-target="tab-custom-agent">2. Tailored AI Agent For Your Business</button>
+        <button class="feature-tab" data-target="tab-product-match">3. Smart Product & Lead Matcher</button>
+      </div>
+
+      <!-- Tab 1: SEO & Reels Process -->
+      <div id="tab-seo-reels" class="tab-content">
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="p-5 rounded-2xl border border-slate-200 bg-white">
+            <div class="text-xs font-bold text-sky-600 mono mb-1">STAGE 1</div>
+            <div class="font-bold text-base text-slate-900 mb-2">Intent Keyword Audit</div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              We audit your website and identify high-buyer-intent keywords people in your target cities search for before buying.
+            </p>
+            <span class="tag tag-blue text-[10px] mt-4">Rank on Google</span>
+          </div>
+
+          <div class="p-5 rounded-2xl border border-slate-200 bg-white">
+            <div class="text-xs font-bold text-purple-600 mono mb-1">STAGE 2</div>
+            <div class="font-bold text-base text-slate-900 mb-2">Viral Reels Scripting</div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              We write 3 to 4 high-retention vertical video scripts every week directly answering your customers' real questions.
+            </p>
+            <span class="tag tag-purple text-[10px] mt-4">3–4 Reels / Week</span>
+          </div>
+
+          <div class="p-5 rounded-2xl border border-slate-200 bg-white">
+            <div class="text-xs font-bold text-teal-600 mono mb-1">STAGE 3</div>
+            <div class="font-bold text-base text-slate-900 mb-2">Native Captions & Voice</div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Videos are formatted with animated subtitles in the local language, ensuring 80%+ viewer retention on Instagram & TikTok.
+            </p>
+            <span class="tag tag-green text-[10px] mt-4">High Engagement</span>
+          </div>
+
+          <div class="p-5 rounded-2xl border border-slate-200 bg-white">
+            <div class="text-xs font-bold text-amber-600 mono mb-1">STAGE 4</div>
+            <div class="font-bold text-base text-slate-900 mb-2">Reels ➔ Ads Funnel</div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Top organic reels are converted into paid Meta and Google Ads, sending visitors straight into this conversational AI.
+            </p>
+            <span class="tag tag-amber text-[10px] mt-4">Lowest Cost Per Lead</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Custom Agent Architecture -->
+      <div id="tab-custom-agent" class="tab-content hidden">
+        <div class="grid md:grid-cols-2 gap-8 items-center">
+          <div>
+            <h3 class="text-xl font-bold text-slate-900 mb-3">Your Dedicated 24/7 AI Sales Representative</h3>
+            <p class="text-slate-600 text-sm leading-relaxed mb-4">
+              Generic bots hallucinate and make false promises. We ingest your product catalog, pricing matrices, return policies, and case studies into a private, guardrailed knowledge base.
+            </p>
+            <div class="space-y-2 text-xs font-medium text-slate-700">
+              <div class="flex items-center gap-2">
+                <span class="text-emerald-500 font-bold">✓</span>
+                <span>Knows your exact pricing and never quotes wrong numbers</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-emerald-500 font-bold">✓</span>
+                <span>Identifies customer pain points and recommends the highest ROI solution</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-emerald-500 font-bold">✓</span>
+                <span>Handles customer inquiries in real-time across all time zones</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50 space-y-3 text-xs">
+            <div class="text-slate-400 font-mono text-[11px]">AI AGENT SPECIFICATIONS:</div>
+            <div class="bg-white p-3.5 rounded-xl border border-slate-200 flex justify-between">
+              <span class="text-slate-500">Domain Memory:</span>
+              <strong class="text-slate-900">Your Full Catalog + FAQs</strong>
+            </div>
+            <div class="bg-white p-3.5 rounded-xl border border-slate-200 flex justify-between">
+              <span class="text-slate-500">Conversation Style:</span>
+              <strong class="text-purple-600">Helpful, Authoritative, Natural</strong>
+            </div>
+            <div class="bg-white p-3.5 rounded-xl border border-slate-200 flex justify-between">
+              <span class="text-slate-500">Qualification Accuracy:</span>
+              <strong class="text-emerald-600">99.2% Verified Accuracy</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Product Matching & Lead Qualification -->
+      <div id="tab-product-match" class="tab-content hidden">
+        <div class="grid md:grid-cols-3 gap-4">
+          <!-- Card 1 -->
+          <div class="p-5 rounded-2xl border border-emerald-200 bg-white">
+            <div class="flex items-center justify-between mb-3">
+              <span class="tag tag-green">95% Match: High-Fit</span>
+              <span class="text-xs font-bold text-emerald-600">QUALIFIED</span>
+            </div>
+            <div class="font-bold text-sm text-slate-900">E-Commerce Brand ($15k/mo revenue)</div>
+            <p class="text-xs text-slate-600 mt-2 mb-4">
+              "We receive 200 orders monthly and need automated customer follow-ups and scaling ads."
+            </p>
+            <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900">
+              💡 <strong>AI Recommends:</strong> Growth Tier (Meta Ads + WhatsApp Automation).
+            </div>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="p-5 rounded-2xl border border-amber-200 bg-white">
+            <div class="flex items-center justify-between mb-3">
+              <span class="tag tag-amber">65% Match: Starter</span>
+              <span class="text-xs font-bold text-amber-600">NURTURE</span>
+            </div>
+            <div class="font-bold text-sm text-slate-900">Early-Stage Solo Founder</div>
+            <p class="text-xs text-slate-600 mt-2 mb-4">
+              "Small budget right now, just exploring options for next quarter."
+            </p>
+            <div class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+              💡 <strong>AI Recommends:</strong> Starter consultation. Never over-sells high-ticket packages.
+            </div>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="p-5 rounded-2xl border border-slate-200 bg-white opacity-85">
+            <div class="flex items-center justify-between mb-3">
+              <span class="tag bg-slate-100 text-slate-600 border border-slate-200">10% Match: Unqualified</span>
+              <span class="text-xs font-bold text-slate-500">FILTERED</span>
+            </div>
+            <div class="font-bold text-sm text-slate-900">Spam / Student Project / Solicitation</div>
+            <p class="text-xs text-slate-600 mt-2 mb-4">
+              "Looking for a job or free advice on university coursework."
+            </p>
+            <div class="p-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-700">
+              🚫 <strong>AI Action:</strong> Polite rejection. Protects your sales team's valuable time.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       FEATURE 4: HIGH-INTENT DATA & INSTANT WHATSAPP GROUP ALERT
+       ======================================================== -->
+  <section id="feature-4" class="pt-6">
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-3">
+      <div class="flex items-center gap-3">
+        <span class="step-badge bg-emerald-600 text-white">4</span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">High-Intent Detection ➔ Instant WhatsApp / Telegram Alert</h2>
+      </div>
+      <button id="simAlertBtn" class="btn-primary text-xs">
+        <span>▶ Test Live WhatsApp Alert</span>
+      </button>
+    </div>
+    <p class="text-slate-600 max-w-3xl mb-6">
+      When the AI recognizes high purchase intent during conversation, it extracts key buyer parameters and immediately notifies your team on WhatsApp or Telegram within <strong>2 seconds</strong>.
+    </p>
+
+    <div class="white-card p-6 sm:p-8">
+      <div class="grid lg:grid-cols-12 gap-8 items-center">
+        <!-- 3-Step Flow Pipeline -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="text-xs font-bold text-slate-400 mono uppercase mb-2">INSTANT DATA PIPELINE:</div>
+
+          <div class="p-4 rounded-2xl border border-slate-200 bg-white flex items-start gap-3">
+            <div class="step-badge bg-sky-100 text-sky-700 shrink-0">1</div>
+            <div>
+              <div class="font-bold text-sm text-slate-900">Customer Conversations In Local Dialect</div>
+              <div class="text-xs text-slate-500 mt-0.5">Visitor asks questions regarding service scope, budget, and implementation.</div>
+            </div>
+          </div>
+
+          <div class="arrow-node py-1">↓</div>
+
+          <div class="p-4 rounded-2xl border border-slate-200 bg-white flex items-start gap-3">
+            <div class="step-badge bg-purple-100 text-purple-700 shrink-0">2</div>
+            <div>
+              <div class="font-bold text-sm text-slate-900">AI Intent Detection (Purchase Probability > 80%)</div>
+              <div class="text-xs text-slate-500 mt-0.5">AI extracts: Name, Email, Budget, Exact Need, City (Kolkata / Berlin), and Urgency.</div>
+            </div>
+          </div>
+
+          <div class="arrow-node py-1">↓</div>
+
+          <div class="p-4 rounded-2xl border border-slate-200 bg-white flex items-start gap-3">
+            <div class="step-badge bg-emerald-100 text-emerald-700 shrink-0">3</div>
+            <div>
+              <div class="font-bold text-sm text-slate-900">Secure Webhook (Make / n8n) Dispatches to WhatsApp Group</div>
+              <div class="text-xs text-slate-500 mt-0.5">Your sales team receives the complete dossier with a one-tap phone call button.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Clean Phone Mockup (White Screen) -->
+        <div class="lg:col-span-5 flex justify-center">
+          <div class="clean-phone">
+            <div class="clean-phone-inner">
+              <!-- Top App Bar -->
+              <div class="bg-emerald-600 text-white p-3.5 flex items-center gap-2">
+                <div class="w-7 h-7 rounded-full bg-emerald-700 flex items-center justify-center text-xs">🚀</div>
+                <div class="flex-1">
+                  <div class="font-bold text-xs">Sales VIP Alert Group</div>
+                  <div class="text-[10px] text-emerald-100">You, Founders, Ritual AI</div>
+                </div>
+              </div>
+
+              <!-- Message Screen (Clean Crisp Background) -->
+              <div class="p-4 flex-1 flex flex-col justify-end bg-slate-50 space-y-2 text-xs">
+                <div class="text-center text-[10px] text-slate-400 my-1">LIVE DISPATCH TODAY</div>
+
+                <!-- Incoming Alert Card -->
+                <div id="alertCard" class="p-3.5 rounded-2xl bg-white border border-emerald-300 shadow-sm transition-all duration-300">
+                  <div class="flex items-center justify-between text-xs font-bold text-emerald-700 mb-2">
+                    <span>🔥 HOT QUALIFIED LEAD!</span>
+                    <span id="alertTime" class="text-[10px] text-slate-400 font-mono">Just now</span>
+                  </div>
+                  <div class="space-y-1.5 text-slate-800 text-xs">
+                    <div>📍 <b>Location:</b> <span id="leadLocation">Kolkata, India 🇮🇳</span></div>
+                    <div>👤 <b>Requested Service:</b> <span id="leadService">Custom AI Agent + Viral Reels</span></div>
+                    <div>💰 <b>Estimated Budget:</b> <span id="leadBudgetAmount">₹45,000 / month</span></div>
+                    <div class="p-2 rounded-lg bg-slate-50 text-[11px] text-slate-600 mt-2 border border-slate-100">
+                      ⚡ <b>AI Note:</b> <i>"This client is currently active on the page and ready to buy. Reach out now to close."</i>
+                    </div>
+                  </div>
+                  <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-sky-600">
+                    <span>📞 Tap to Call Customer</span>
+                    <span class="text-emerald-500">✓✓ Sent</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       FEATURE 5: PROJECT TIMELINE & FEASIBILITY CALCULATOR
+       ======================================================== -->
+  <section id="feature-5" class="pt-6">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="step-badge bg-amber-500 text-white">5</span>
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Project Timeline & Scope Calculator</h2>
+    </div>
+    <p class="text-slate-600 max-w-3xl mb-6">
+      Select your business category to instantly see how many days implementation takes, the step-by-step roadmap, and what simple assets we need from you.
+    </p>
+
+    <div class="white-card p-6 sm:p-8">
+      <div class="grid lg:grid-cols-12 gap-8 items-start">
+        <!-- Dropdown Selections -->
+        <div class="lg:col-span-5 space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mono mb-1.5 uppercase">1. SELECT YOUR BUSINESS TYPE:</label>
+            <select id="nicheSelect" class="w-full border border-slate-300 rounded-xl p-3 text-sm bg-white font-medium focus:border-sky-500 focus:outline-none">
+              <option value="ecom">E-commerce / D2C Consumer Brand</option>
+              <option value="local">Local Clinic / Dental / Real Estate / Services</option>
+              <option value="agency">B2B Agency / High-Ticket Consultancy</option>
+              <option value="coach">Coaching / Ed-Tech / Content Creator</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mono mb-1.5 uppercase">2. PRIMARY GOAL:</label>
+            <select id="goalSelect" class="w-full border border-slate-300 rounded-xl p-3 text-sm bg-white font-medium focus:border-sky-500 focus:outline-none">
+              <option value="full">Full Engine (SEO + Reels + Voice AI + WhatsApp Funnel)</option>
+              <option value="leads">Direct Qualified Leads on WhatsApp Only</option>
+              <option value="voice">Interactive Multilingual Voice Website Only</option>
+            </select>
+          </div>
+
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-600 space-y-1.5">
+            <div class="font-bold text-slate-900 flex items-center gap-1.5">
+              <span>⚡</span> <span>Autonomous Estimation Algorithm</span>
+            </div>
+            <p>Calculates data ingestion, webhook bridge security, and video rendering turnaround time automatically.</p>
+          </div>
+        </div>
+
+        <!-- Generated Output Box -->
+        <div class="lg:col-span-7 border border-slate-200 rounded-2xl p-6 bg-white shadow-sm">
+          <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+            <div>
+              <div class="text-xs text-slate-400 mono">PROJECTED DELIVERY TIMELINE:</div>
+              <div id="outputDays" class="text-3xl font-extrabold text-slate-900 mt-1">
+                7 – 10 Days <span class="tag tag-green ml-2 text-xs font-bold">Production Ready</span>
+              </div>
+            </div>
+            <span class="tag tag-blue">Guaranteed Scope</span>
+          </div>
+
+          <!-- Dynamic Roadmap Steps -->
+          <div class="mt-6 space-y-4" id="timelineRoadmap">
+            <!-- Steps populated via JS -->
+          </div>
+
+          <!-- What's needed from client -->
+          <div class="mt-6 pt-4 border-t border-slate-100 bg-slate-50 p-4 rounded-xl text-xs">
+            <div class="font-bold text-slate-900 mb-1">Only 3 Items Required From Your Team:</div>
+            <div class="grid sm:grid-cols-3 gap-2 text-slate-600 mt-2">
+              <div class="flex items-center gap-1.5"><span>📄</span> <span>Product / Price List</span></div>
+              <div class="flex items-center gap-1.5"><span>📱</span> <span>WhatsApp Phone Number</span></div>
+              <div class="flex items-center gap-1.5"><span>📍</span> <span>Target Cities / Regions</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final Call to Action -->
+  <section class="white-card p-10 text-center border-2 border-slate-200 max-w-4xl mx-auto">
+    <span class="tag tag-blue mb-3">Live Interactive Environment</span>
+    <h2 class="text-3xl font-extrabold text-slate-900">Experience It Yourself In Real-Time</h2>
+    <p class="text-slate-600 text-sm max-w-xl mx-auto mt-2">
+      Speak directly to our AI on the main page. Test different questions and observe how fast and intelligently it replies aloud.
+    </p>
+    <div class="mt-6 flex flex-wrap justify-center gap-3">
+      <a href="index.html" class="btn-primary text-sm">
+        <span>🎙️ Launch Live Voice AI Demo</span>
+      </a>
+      <a href="#feature-1" class="btn-secondary text-sm">
+        <span>↑ Back To Top</span>
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="border-t border-slate-200 py-8 text-center text-sm text-slate-400">
+  © <span id="year"></span> Ritual.ai — Built For High-Conversion Multilingual Growth
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// 1. City Selection Interactive Logic
+const cityPills = document.querySelectorAll('#cityPills .city-pill');
+cityPills.forEach(pill => {
+  pill.onclick = () => {
+    cityPills.forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+
+    const city = pill.dataset.city;
+    const country = pill.dataset.country;
+    const lang = pill.dataset.lang;
+    const curr = pill.dataset.currency;
+    const speed = pill.dataset.speed;
+    const greet = pill.dataset.greet;
+
+    $('vCity').textContent = city;
+    $('vCountry').textContent = country;
+    $('vLang').textContent = lang;
+    $('vCurrency').textContent = curr;
+    $('vSpeed').textContent = speed;
+
+    const greetBox = $('vGreetBox');
+    greetBox.textContent = `"${greet}"`;
+    greetBox.classList.add('bg-sky-100');
+    setTimeout(() => greetBox.classList.remove('bg-sky-100'), 250);
+  };
+});
+
+// 2. Feature Tabs Logic
+const featureTabs = document.querySelectorAll('#featureTabs .feature-tab');
+featureTabs.forEach(tab => {
+  tab.onclick = () => {
+    featureTabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+
+    const targetId = tab.dataset.target;
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+    $(targetId)?.classList.remove('hidden');
+  };
+});
+
+// 3. WhatsApp Simulator Alert
+const leadSamples = [
+  { loc: "Kolkata, India 🇮🇳", service: "Custom AI Agent + Viral Reels", budget: "₹45,000 / month" },
+  { loc: "Berlin, Germany 🇩🇪", service: "Multilingual Meta Ads + CRM Funnel", budget: "€1,200 / month" },
+  { loc: "Paris, France 🇫🇷", service: "E-Commerce Video Reels + SEO", budget: "€1,600 / month" },
+  { loc: "New York, USA 🇺🇸", service: "Full B2B Growth Engine", budget: "$2,400 / month" }
+];
+let sampleIdx = 0;
+
+$('simAlertBtn').onclick = () => {
+  sampleIdx = (sampleIdx + 1) % leadSamples.length;
+  const lead = leadSamples[sampleIdx];
+  const card = $('alertCard');
+
+  card.style.transform = "scale(0.96)";
+  card.style.opacity = "0.5";
+
+  setTimeout(() => {
+    $('leadLocation').textContent = lead.loc;
+    $('leadService').textContent = lead.service;
+    $('leadBudgetAmount').textContent = lead.budget;
+    $('alertTime').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    card.style.transform = "scale(1.02)";
+    card.style.opacity = "1";
+    card.classList.add('border-emerald-500');
+
+    setTimeout(() => {
+      card.style.transform = "scale(1)";
+      card.classList.remove('border-emerald-500');
+    }, 200);
+  }, 180);
+};
+
+// 4. Project Roadmap Calculator Logic
+const roadmapData = {
+  ecom: {
+    days: "6 – 8 Days",
+    steps: [
+      { t: "Day 1: Product Catalog & Knowledge Ingestion", d: "Your SKU variants, pricing, FAQs, and refund policies loaded into the AI agent." },
+      { t: "Day 2–3: High-Converting Reels Scripting", d: "Scripting 12 problem-solution reels specifically tailored to your products." },
+      { t: "Day 4–5: Shopify/WooCommerce Webhook Link", d: "Automating cart recovery and lead notifications via WhatsApp." },
+      { t: "Day 6: Go-Live & Traffic Deployment", d: "Launching targeted ads directly to your conversational AI landing page." }
+    ]
+  },
+  local: {
+    days: "5 – 7 Days",
+    steps: [
+      { t: "Day 1: City Geo-Fencing & Service Scheduling", d: "Programming your clinic/office appointment slots, consultation fees, and local address." },
+      { t: "Day 2–3: Local Language Reels & Google Ads Setup", d: "Targeting your specific 15km city radius with native dialect hooks." },
+      { t: "Day 4–5: Direct WhatsApp Booking Integration", d: "Lead inquiries routed straight to your reception desk phone." },
+      { t: "Day 6: Production Launch", d: "Patients and clients start booking appointments automatically." }
+    ]
+  },
+  agency: {
+    days: "8 – 11 Days",
+    steps: [
+      { t: "Day 1–2: B2B Case Study & Portfolio Training", d: "Structuring your past client results and high-ticket discovery framework." },
+      { t: "Day 3–5: Thought Leadership Reels Production", d: "Establishing your authority with high-intent short-form video content." },
+      { t: "Day 6–8: VIP CRM & Calendar Routing", d: "Qualified high-ticket prospects booked directly into founder's calendar." },
+      { t: "Day 9: Live Campaign Launch", d: "Autonomous lead qualification running 24/7." }
+    ]
+  },
+  coach: {
+    days: "6 – 8 Days",
+    steps: [
+      { t: "Day 1: Course Curriculum Knowledge Ingestion", d: "AI trained on your course modules, FAQs, and student testimonials." },
+      { t: "Day 2–3: Daily Reels & Story Script Engine", d: "Scripts crafted to convert social media viewers into DM chats." },
+      { t: "Day 4–5: Payment Gateway & Group Links", d: "Immediate payment link and community access dispatched upon qualification." },
+      { t: "Day 6: Launch & Automated Enrolments", d: "AI handles hundreds of student inquiries simultaneously." }
+    ]
+  }
+};
+
+function renderRoadmap() {
+  const niche = $('nicheSelect').value;
+  const data = roadmapData[niche] || roadmapData.ecom;
+
+  $('outputDays').innerHTML = `${data.days} <span class="tag tag-green ml-2 text-xs font-bold">Production Ready</span>`;
+
+  $('timelineRoadmap').innerHTML = data.steps.map(s => `
+    <div class="roadmap-bar">
+      <div class="font-bold text-sm text-slate-900">${s.t}</div>
+      <div class="text-xs text-slate-600 mt-0.5 leading-relaxed">${s.d}</div>
+    </div>
+  `).join('');
+}
+
+$('nicheSelect').onchange = renderRoadmap;
+$('goalSelect').onchange = renderRoadmap;
+renderRoadmap();
+
+$('year').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>

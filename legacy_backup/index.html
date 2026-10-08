@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Growth Platform</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;700;800&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  @property --a{syntax:'<angle>';initial-value:0deg;inherits:false}
+  :root{--c1:#00b4ff;--c2:#7a3cff;--c3:#00e0b8;--ink:#0b1020}
+  *{scroll-behavior:smooth}
+  body{font-family:'Instrument Sans',system-ui,sans-serif;background:#fff;color:var(--ink);position:relative;overflow-x:hidden}
+  body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background-image:linear-gradient(rgba(30,50,140,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(30,50,140,.055) 1px,transparent 1px);
+    background-size:44px 44px;-webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 20%,#000 30%,transparent 100%);mask-image:radial-gradient(ellipse 80% 60% at 50% 20%,#000 30%,transparent 100%)}
+  body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:radial-gradient(600px 400px at 85% 8%,rgba(0,180,255,.13),transparent 70%),radial-gradient(500px 380px at 8% 30%,rgba(122,60,255,.10),transparent 70%),radial-gradient(500px 300px at 60% 95%,rgba(0,224,184,.10),transparent 70%)}
+  h1,h2,h3,.disp{font-family:'Sora',sans-serif;letter-spacing:-.03em}
+  .mono{font-family:'IBM Plex Mono',monospace}
+  .card{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid rgba(30,50,140,.1);border-radius:18px;box-shadow:0 1px 2px rgba(11,16,32,.04),0 24px 48px -24px rgba(40,60,200,.25)}
+  .glow{padding:1.5px;border-radius:20px;background:conic-gradient(from var(--a),var(--c1),var(--c2),var(--c3),var(--c1));animation:spin 7s linear infinite;box-shadow:0 30px 70px -30px rgba(80,60,255,.45)}
+  @keyframes spin{to{--a:360deg}}
+  .glow .card{border:0;border-radius:18.5px;background:rgba(255,255,255,.94);box-shadow:none}
+  .btn{background:linear-gradient(120deg,var(--c1),var(--c2));color:#fff;border-radius:12px;padding:.6rem 1.1rem;font-weight:600;transition:.2s;box-shadow:0 8px 22px -8px rgba(100,70,255,.7)}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 12px 28px -8px rgba(100,70,255,.85)}
+  .chip{border:1px solid rgba(30,50,140,.14);border-radius:999px;padding:.35rem .85rem;font-size:.82rem;background:rgba(255,255,255,.8);transition:.2s}
+  .chip:hover{border-color:var(--c1);color:#0070c9;box-shadow:0 0 0 3px rgba(0,180,255,.14)}
+  .msg{max-width:86%;padding:.65rem .9rem;border-radius:14px;font-size:.93rem;line-height:1.5;white-space:pre-wrap}
+  .bot{background:#f2f6ff;border:1px solid rgba(30,50,140,.08);border-top-left-radius:4px}
+  .usr{background:linear-gradient(120deg,var(--c1),var(--c2));color:#fff;margin-left:auto;border-top-right-radius:4px}
+  .dot{animation:b 1s infinite}.dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
+  @keyframes b{0%,80%,100%{opacity:.25}40%{opacity:1}}
+
+  /* ========== TALKING VOICE AI AESTHETICS ========== */
+  .voice-avatar-wrap {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .voice-orb {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 32%, #ffffff, var(--c1) 45%, var(--c2) 90%);
+    box-shadow: 0 0 14px rgba(0, 180, 255, 0.45), inset 0 -2px 6px rgba(122, 60, 255, 0.6);
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+  }
+  .voice-mouth {
+    width: 10px;
+    height: 2.5px;
+    background: #ffffff;
+    border-radius: 4px;
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.95);
+    transition: all 0.15s ease;
+  }
+  .voice-ring {
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    border: 1.5px solid var(--c1);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Talking & Speaking Active State */
+  .is-speaking .voice-orb {
+    animation: voiceThrob 0.42s ease-in-out infinite alternate;
+  }
+  .is-speaking .voice-mouth {
+    animation: mouthTalk 0.22s ease-in-out infinite alternate;
+  }
+  .is-speaking .voice-ring.r1 {
+    animation: voiceRingExpand 1.4s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+  }
+  .is-speaking .voice-ring.r2 {
+    animation: voiceRingExpand 1.4s cubic-bezier(0.1, 0.8, 0.3, 1) infinite 0.7s;
+  }
+
+  @keyframes voiceThrob {
+    0% { transform: scale(0.98); box-shadow: 0 0 12px rgba(0, 180, 255, 0.6), 0 0 20px rgba(122, 60, 255, 0.35); }
+    100% { transform: scale(1.15); box-shadow: 0 0 24px rgba(0, 224, 184, 0.85), 0 0 36px rgba(0, 180, 255, 0.6); }
+  }
+  @keyframes mouthTalk {
+    0% { height: 2px; width: 6px; border-radius: 2px; }
+    50% { height: 9px; width: 8px; border-radius: 50%; }
+    100% { height: 4px; width: 11px; border-radius: 3px; }
+  }
+  @keyframes voiceRingExpand {
+    0% { transform: scale(0.85); opacity: 0.85; border-color: var(--c3); }
+    50% { border-color: var(--c1); }
+    100% { transform: scale(2.2); opacity: 0; border-color: var(--c2); }
+  }
+
+  /* Voice Status Badges */
+  .voice-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-weight: 600;
+    line-height: 1.2;
+    transition: 0.25s;
+  }
+  .voice-badge.ready {
+    background: rgba(0, 224, 184, 0.12);
+    color: #00876f;
+    border: 1px solid rgba(0, 224, 184, 0.3);
+  }
+  .voice-badge.ready .b-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #00c7a3;
+  }
+  .voice-badge.speaking {
+    background: rgba(0, 180, 255, 0.15);
+    color: #0274ba;
+    border: 1px solid rgba(0, 180, 255, 0.4);
+    box-shadow: 0 0 10px rgba(0, 180, 255, 0.25);
+  }
+  .voice-badge.speaking .b-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--c1);
+    box-shadow: 0 0 8px var(--c1);
+    animation: b 0.5s infinite;
+  }
+  .voice-badge.listening {
+    background: rgba(255, 77, 109, 0.15);
+    color: #d1123a;
+    border: 1px solid rgba(255, 77, 109, 0.35);
+  }
+  .voice-badge.listening .b-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ff3366;
+    animation: b 0.4s infinite;
+  }
+
+  /* Audio Spectrum Frequency Bars */
+  .voice-wave-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2.5px;
+    height: 18px;
+    padding: 2px 6px;
+    background: rgba(240, 245, 255, 0.7);
+    border-radius: 8px;
+    border: 1px solid rgba(30, 50, 140, 0.08);
+  }
+  .vbar {
+    width: 2.5px;
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, var(--c1), var(--c2));
+    transition: height 0.15s ease;
+  }
+  .is-speaking .vbar.b1 { animation: waveDance 0.4s ease-in-out infinite alternate 0.05s; }
+  .is-speaking .vbar.b2 { animation: waveDance 0.32s ease-in-out infinite alternate 0.12s; }
+  .is-speaking .vbar.b3 { animation: waveDance 0.45s ease-in-out infinite alternate 0.25s; }
+  .is-speaking .vbar.b4 { animation: waveDance 0.28s ease-in-out infinite alternate 0.08s; }
+  .is-speaking .vbar.b5 { animation: waveDance 0.48s ease-in-out infinite alternate 0.18s; }
+  .is-speaking .vbar.b6 { animation: waveDance 0.36s ease-in-out infinite alternate 0.22s; }
+  .is-speaking .vbar.b7 { animation: waveDance 0.42s ease-in-out infinite alternate 0.1s; }
+
+  @keyframes waveDance {
+    0% { height: 3px; }
+    100% { height: 16px; }
+  }
+
+  /* Live Voice Strip */
+  .voice-live-strip {
+    background: rgba(248, 250, 255, 0.85);
+    border-bottom: 1px solid rgba(30, 50, 140, 0.06);
+    padding: 6px 14px;
+    font-size: 0.74rem;
+  }
+
+  /* Interactive Buttons */
+  .voice-toggle-btn {
+    border: 1px solid rgba(30, 50, 140, 0.12);
+    border-radius: 9px;
+    padding: 5px 7px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+    cursor: pointer;
+  }
+  .voice-toggle-btn:hover {
+    border-color: var(--c1);
+    background: #f4f8ff;
+    transform: translateY(-1px);
+  }
+  .mic-btn {
+    border: 1px solid rgba(30, 50, 140, 0.14);
+    border-radius: 12px;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f6f8fe;
+    color: #44507a;
+    position: relative;
+    cursor: pointer;
+    transition: 0.2s;
+    flex-shrink: 0;
+  }
+  .mic-btn:hover {
+    border-color: var(--c1);
+    color: #0070c9;
+    background: #fff;
+    transform: translateY(-1px);
+  }
+  .mic-btn.listening {
+    background: linear-gradient(120deg, #ff4d6d, #e60049);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 0 16px rgba(255, 77, 109, 0.6);
+  }
+  .mic-btn.listening::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 14px;
+    border: 2px solid #ff4d6d;
+    animation: micPing 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  @keyframes micPing {
+    0% { transform: scale(0.95); opacity: 0.9; }
+    100% { transform: scale(1.35); opacity: 0; }
+  }
+
+  /* Message Voice Action */
+  .msg-voice-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    padding: 2.5px 8px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #556288;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(30, 50, 140, 0.1);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: 0.15s;
+    user-select: none;
+  }
+  .msg-voice-action:hover {
+    color: #0070c9;
+    border-color: var(--c1);
+    background: #ffffff;
+  }
+  .msg-voice-action.speaking {
+    color: #0070c9;
+    border-color: var(--c1);
+    background: #edf5ff;
+    box-shadow: 0 0 8px rgba(0, 180, 255, 0.25);
+  }
+
+  /* Mini Wave inside message */
+  .mini-bars {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 1.5px;
+    height: 10px;
+  }
+  .mini-bars span {
+    width: 2px;
+    height: 4px;
+    border-radius: 1px;
+    background: currentColor;
+  }
+  .msg-voice-action.speaking .mini-bars span:nth-child(1) { animation: waveDance 0.35s infinite alternate; }
+  .msg-voice-action.speaking .mini-bars span:nth-child(2) { animation: waveDance 0.25s infinite alternate 0.1s; }
+  .msg-voice-action.speaking .mini-bars span:nth-child(3) { animation: waveDance 0.4s infinite alternate 0.05s; }
+
+  /* Hero voice pill */
+  .hero-voice-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(30, 50, 140, 0.12);
+    font-size: 0.78rem;
+    color: #2b3964;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px -2px rgba(40, 60, 200, 0.08);
+  }
+  .hero-voice-pill b {
+    color: #0070c9;
+    font-weight: 600;
+  }
+
+  .hud{display:inline-flex;gap:.9rem;align-items:center;font-size:.75rem;color:#44507a;border:1px solid rgba(30,50,140,.12);border-radius:10px;padding:.4rem .7rem;background:rgba(255,255,255,.7)}
+  .hud b{color:#0070c9;font-weight:500}
+  .corner{position:relative}
+  .corner::before,.corner::after{content:"";position:absolute;width:14px;height:14px;border:2px solid var(--c1);opacity:.8}
+  .corner::before{top:-6px;left:-6px;border-right:0;border-bottom:0}
+  .corner::after{bottom:-6px;right:-6px;border-left:0;border-top:0}
+  .track{height:3px;border-radius:3px;background:rgba(30,50,140,.1);margin-bottom:14px;overflow:hidden}
+  #prog{height:100%;width:0;background:linear-gradient(90deg,var(--c1),var(--c2),var(--c3));transition:width .7s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 12px var(--c1)}
+  .step{cursor:pointer;transition:.25s;border:1px solid rgba(30,50,140,.1);border-radius:16px;background:rgba(255,255,255,.75);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding:1rem;text-align:left}
+  .step:hover{border-color:rgba(0,180,255,.5)}
+  .step.on{border-color:transparent;background:#fff;box-shadow:0 0 0 1.5px var(--c1),0 0 0 5px rgba(0,180,255,.12),0 18px 36px -16px rgba(80,60,255,.5);transform:translateY(-3px)}
+  .step.on .n{background:linear-gradient(120deg,var(--c1),var(--c2));color:#fff;border-color:transparent}
+  .n{width:30px;height:30px;border-radius:9px;border:1px solid rgba(30,50,140,.15);background:#f4f6ff;display:grid;place-items:center;font-weight:500;font-size:.8rem;transition:.25s;font-family:'IBM Plex Mono',monospace}
+  #log::-webkit-scrollbar{width:6px}#log::-webkit-scrollbar-thumb{background:#d6dcf5;border-radius:6px}
+  :focus-visible{outline:2px solid var(--c1);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="border-b border-gray-100">
+  <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+    <div class="disp font-bold text-lg tracking-tight">Ritual<span style="background:linear-gradient(120deg,#00b4ff,#7a3cff);-webkit-background-clip:text;background-clip:text;color:transparent">.ai</span></div>
+    <div class="flex items-center gap-3 text-sm">
+      <a href="platform.html" class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-sky-200 bg-sky-50/70 text-sky-700 hover:bg-sky-100 transition">
+        <span>⚡ System Visual Flow</span>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </a>
+      <span id="detected" class="hidden sm:inline text-gray-500"></span>
+      <select id="langSel" aria-label="Language" class="border border-gray-200 rounded-lg px-2 py-1 bg-white">
+        <option value="en">English</option><option value="de">Deutsch</option>
+        <option value="fr">Français</option><option value="es">Español</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<main>
+<section class="max-w-6xl mx-auto px-5 pt-12 pb-16 grid lg:grid-cols-2 gap-10 items-start">
+  <div class="lg:pt-8">
+    <div class="hero-voice-pill">
+      <div class="voice-avatar-wrap" style="width:20px;height:20px">
+        <div class="voice-orb" style="width:16px;height:16px">
+          <span class="voice-mouth" style="width:6px;height:2px"></span>
+        </div>
+      </div>
+      <span><b id="heroVoiceTag">Voice-Activated AI</b> · Real-time Multilingual Speech</span>
+    </div>
+    <div class="hud mono mb-6" id="hud"></div>
+    <h1 id="heroT" class="text-4xl sm:text-6xl font-extrabold leading-[1.02]"></h1>
+    <p id="heroS" class="mt-5 text-gray-600 text-lg max-w-md"></p>
+    <div class="mt-6 flex flex-wrap gap-2" id="chipsHero"></div>
+  </div>
+
+  <div class="glow corner" style="height:min(640px,80vh)"><div id="chatCard" class="card overflow-hidden flex flex-col h-full" aria-label="AI voice chat">
+    <!-- Voice AI Header -->
+    <div class="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
+      <!-- Animated Speaking Avatar -->
+      <div class="voice-avatar-wrap" id="mainAvatar" title="Ritual Voice Persona">
+        <div class="voice-ring r1"></div>
+        <div class="voice-ring r2"></div>
+        <div class="voice-orb">
+          <span class="voice-mouth"></span>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-semibold text-sm">Ritual AI</span>
+          <span id="voiceStatusBadge" class="voice-badge ready">
+            <span class="b-dot"></span><span id="voiceStatusText">Voice Ready</span>
+          </span>
+        </div>
+        <div class="text-[11px] text-gray-400 mono flex items-center gap-1.5 mt-0.5">
+          <span>SPEECH SYNTHESIS</span> · <span id="detectedVoiceLang" style="color:var(--c1);font-weight:600">EN</span>
+        </div>
+      </div>
+
+      <!-- Header Controls: Spectrum visualizer, voice mute toggle, mode -->
+      <div class="ml-auto flex items-center gap-2">
+        <div class="voice-wave-bars hidden sm:flex" title="Voice Frequency Spectrum">
+          <span class="vbar b1"></span>
+          <span class="vbar b2"></span>
+          <span class="vbar b3"></span>
+          <span class="vbar b4"></span>
+          <span class="vbar b5"></span>
+          <span class="vbar b6"></span>
+          <span class="vbar b7"></span>
+        </div>
+        <button id="voiceToggle" class="voice-toggle-btn" title="Toggle AI voice narration (Mute/Unmute)" aria-label="Toggle voice reading">
+          <svg id="vIconOn" class="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+          <svg id="vIconOff" class="w-4 h-4 text-gray-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+        </button>
+        <span id="mode" class="text-xs text-gray-400 mono"></span>
+      </div>
+    </div>
+
+    <!-- Live voice visualizer status strip -->
+    <div class="voice-live-strip flex items-center justify-between text-gray-500">
+      <div id="voiceLiveStripText" class="truncate pr-2">
+        AI Voice Synthesis: <b style="color:var(--c1)">Online & Interactive</b>
+      </div>
+      <button id="hearDemoBtn" class="text-sky-600 hover:text-purple-600 font-semibold flex items-center gap-1 text-[11px] whitespace-nowrap cursor-pointer">
+        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> <span id="hearDemoLabel">Hear Voice</span>
+      </button>
+    </div>
+
+    <div id="log" class="flex-1 overflow-y-auto p-4 space-y-3" aria-live="polite"></div>
+    <div id="chips" class="px-4 pb-2 flex flex-wrap gap-2"></div>
+    <div class="p-3 border-t border-gray-100 flex items-center gap-2">
+      <!-- Microphone Voice Input Button -->
+      <button id="micBtn" type="button" class="mic-btn" aria-label="Voice input" title="Click to speak (Voice Recognition)">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+      </button>
+      <input id="inp" class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none" autocomplete="off">
+      <button id="send" class="btn text-sm"></button>
+    </div>
+  </div></div>
+</section>
+
+<section class="border-t border-gray-100" style="background:linear-gradient(180deg,rgba(255,255,255,.6),rgba(244,247,255,.7))">
+  <div class="max-w-6xl mx-auto px-5 py-16">
+    <div class="flex flex-wrap items-end justify-between gap-4 mb-8">
+      <div>
+        <h2 id="archT" class="text-3xl font-bold"></h2>
+        <p id="archS" class="text-gray-600 mt-2 max-w-xl"></p>
+      </div>
+      <button id="run" class="btn text-sm"></button>
+    </div>
+    <div class="track"><div id="prog"></div></div>
+    <div id="steps" class="grid sm:grid-cols-2 lg:grid-cols-5 gap-3"></div>
+    <div id="detail" class="card corner mt-5 p-5 text-gray-700 min-h-[96px]"></div>
+  </div>
+</section>
+</main>
+
+<footer class="border-t border-gray-100 py-8 text-center text-sm text-gray-400">© <span id="yr"></span> Ritual.ai</footer>
+
+<script>
+/* ============ 1. CONFIG ============ */
+const CONFIG = {
+  PROXY_URL: ""   // e.g. "/api/proxy.php"
+};
+
+/* ============ 2. BUSINESS KNOWLEDGE ============ */
+const KB = {
+  agency: "Ritual.ai",
+  entries: [
+    { id:"ads",
+      keywords:["ads","ad","meta","facebook","instagram","google","campaign","werbung","anzeigen","kampagne","publicité","pub","annonces","campagne","anuncios","publicidad","campaña"],
+      answer:{
+        en:"Ad management: we launch Meta and Google campaigns targeted by country and language, test 3–5 creatives per audience, and optimise weekly on cost per qualified lead, not clicks. Every ad sends visitors straight into this AI chat.",
+        de:"Anzeigenmanagement: Wir starten Meta- und Google-Kampagnen nach Land und Sprache, testen 3–5 Creatives pro Zielgruppe und optimieren wöchentlich auf Kosten pro qualifiziertem Lead – nicht auf Klicks. Jede Anzeige führt direkt in diesen KI-Chat.",
+        fr:"Gestion publicitaire : nous lançons des campagnes Meta et Google ciblées par pays et par langue, testons 3 à 5 créations par audience et optimisons chaque semaine selon le coût par lead qualifié, pas les clics. Chaque annonce mène directement à ce chat IA.",
+        es:"Gestión de anuncios: lanzamos campañas de Meta y Google segmentadas por país e idioma, probamos 3–5 creatividades por audiencia y optimizamos cada semana según el coste por lead cualificado, no por clics. Cada anuncio lleva directo a este chat con IA." }},
+    { id:"reels",
+      keywords:["reel","reels","video","content","short","tiktok","creative","videos","inhalt","vidéo","contenu","contenido","vídeo"],
+      answer:{
+        en:"Reel creation: we script hooks from your customers' real questions, shoot or edit vertical video, add native-language captions, and publish 3–4 reels per week. Top performers are turned into ad creatives.",
+        de:"Reel-Produktion: Wir schreiben Hooks aus den echten Kundenfragen, produzieren Hochformat-Videos mit Untertiteln in der Landessprache und veröffentlichen 3–4 Reels pro Woche. Die besten werden zu Anzeigen-Creatives.",
+        fr:"Création de reels : nous écrivons des accroches à partir des vraies questions de vos clients, montons des vidéos verticales sous-titrées dans la langue locale et publions 3 à 4 reels par semaine. Les meilleurs deviennent des créations publicitaires.",
+        es:"Creación de reels: escribimos ganchos a partir de las preguntas reales de tus clientes, producimos vídeo vertical con subtítulos en el idioma local y publicamos 3–4 reels por semana. Los mejores se convierten en anuncios." }},
+    { id:"seo",
+      keywords:["seo","search","ranking","keywords","google ranking","suchmaschine","suche","référencement","recherche","posicionamiento","búsqueda"],
+      answer:{
+        en:"SEO: we audit your site, map keywords by buyer intent, publish optimised pages and articles each month, and fix technical issues. You get a monthly report on rankings and leads.",
+        de:"SEO: Wir prüfen Ihre Website, ordnen Keywords nach Kaufabsicht, veröffentlichen monatlich optimierte Seiten und Artikel und beheben technische Fehler. Sie erhalten monatlich einen Bericht zu Rankings und Leads.",
+        fr:"SEO : nous auditons votre site, classons les mots-clés par intention d'achat, publions chaque mois des pages et articles optimisés et corrigeons les problèmes techniques. Vous recevez un rapport mensuel sur les positions et les leads.",
+        es:"SEO: auditamos tu web, ordenamos las palabras clave por intención de compra, publicamos páginas y artículos optimizados cada mes y corregimos problemas técnicos. Recibes un informe mensual de posiciones y leads." }},
+    { id:"automation",
+      keywords:["automation","automate","make","n8n","telegram","whatsapp","sheets","crm","lead","leads","automatisierung","automatisation","automatización","workflow"],
+      answer:{
+        en:"Automation: every qualified lead is sent through a secure proxy to Make.com or n8n, which adds a row to Google Sheets and alerts your team on Telegram or WhatsApp within seconds.",
+        de:"Automatisierung: Jeder qualifizierte Lead läuft über einen sicheren Proxy zu Make.com oder n8n, wird in Google Sheets eingetragen und Ihr Team wird innerhalb von Sekunden per Telegram oder WhatsApp benachrichtigt.",
+        fr:"Automatisation : chaque lead qualifié passe par un proxy sécurisé vers Make.com ou n8n, qui ajoute une ligne dans Google Sheets et alerte votre équipe sur Telegram ou WhatsApp en quelques secondes.",
+        es:"Automatización: cada lead cualificado pasa por un proxy seguro a Make.com o n8n, que añade una fila en Google Sheets y avisa a tu equipo por Telegram o WhatsApp en segundos." }},
+    { id:"pricing",
+      keywords:["price","pricing","cost","budget","how much","preis","kosten","prix","coût","tarif","precio","costo","cuánto"],
+      answer:{
+        en:"Pricing depends on ad budget and scope. Leave your email and our team will send a tailored proposal within one working day.",
+        de:"Der Preis hängt von Werbebudget und Umfang ab. Hinterlassen Sie Ihre E-Mail-Adresse, und unser Team sendet Ihnen innerhalb eines Werktags ein individuelles Angebot.",
+        fr:"Le tarif dépend du budget publicitaire et du périmètre. Laissez votre e-mail et notre équipe vous enverra une proposition sur mesure sous un jour ouvré.",
+        es:"El precio depende del presupuesto publicitario y del alcance. Deja tu correo y nuestro equipo te enviará una propuesta a medida en un día laborable." }}
+  ]
+};
+
+/* ============ 3. UI TEXT ============ */
+const UI = {
+ en:{
+   name:"English",
+   heroT:"Grow your business with an AI that talks to every customer.",
+   heroS:"Ads bring people in. Our multilingual AI answers, qualifies each lead, and tells your team instantly.",
+   greet:"Hi! I'm the Ritual voice AI. I can explain how we run ads, create reels, handle SEO and automate your leads. You can speak or type to me!",
+   ph:"Type or tap mic to speak…",
+   send:"Send",
+   chips:["How do you manage ads?","Tell me about reels","What does SEO include?","How are leads automated?","Pricing"],
+   fallback:"I can help with ads, reels, SEO, automation and pricing. Which one interests you?",
+   lead:"Thanks! Your details are with our team and they'll reach out shortly.",
+   archT:"How the platform works",
+   archS:"From first ad click to a message on your team's phone. Select a step to see what happens.",
+   run:"Run a sample lead",
+   det:"Detected",
+   voiceReady:"Voice Ready",
+   speaking:"Speaking aloud…",
+   listening:"Listening… Speak now",
+   listenBtn:"Listen",
+   hearVoice:"Hear Voice",
+   heroTag:"Voice-Activated AI"
+ },
+ de:{
+   name:"Deutsch",
+   heroT:"Wachsen Sie mit einer KI, die mit jedem Kunden spricht.",
+   heroS:"Anzeigen bringen Besucher. Unsere mehrsprachige KI antwortet, qualifiziert jeden Lead und informiert Ihr Team sofort.",
+   greet:"Hallo! Ich bin die Ritual-Sprach-KI. Ich erkläre Ihnen, wie wir Anzeigen schalten, Reels erstellen, SEO betreiben und Leads automatisieren. Sprechen oder schreiben Sie mir!",
+   ph:"Tippen oder Mikrofon drücken…",
+   send:"Senden",
+   chips:["Wie verwalten Sie Anzeigen?","Erzählen Sie mehr über Reels","Was umfasst SEO?","Wie laufen Leads automatisch?","Preise"],
+   fallback:"Ich helfe gern bei Anzeigen, Reels, SEO, Automatisierung und Preisen. Was interessiert Sie?",
+   lead:"Danke! Ihre Daten liegen bei unserem Team, wir melden uns in Kürze.",
+   archT:"So funktioniert die Plattform",
+   archS:"Vom ersten Anzeigenklick bis zur Nachricht auf dem Handy Ihres Teams. Wählen Sie einen Schritt aus.",
+   run:"Beispiel-Lead starten",
+   det:"Erkannt",
+   voiceReady:"Sprache Bereit",
+   speaking:"Spricht…",
+   listening:"Zuhören… Sprechen Sie",
+   listenBtn:"Anhören",
+   hearVoice:"Stimme hören",
+   heroTag:"Sprachgestützte KI"
+ },
+ fr:{
+   name:"Français",
+   heroT:"Développez votre activité avec une IA qui parle à chaque client.",
+   heroS:"Les annonces attirent les visiteurs. Notre IA multilingue répond, qualifie chaque lead et prévient votre équipe instantanément.",
+   greet:"Bonjour ! Je suis l'IA vocale de Ritual. Je peux vous expliquer la publicité, les reels, le SEO et l'automatisation. Parlez-moi ou écrivez-moi !",
+   ph:"Écrivez ou activez le micro…",
+   send:"Envoyer",
+   chips:["Comment gérez-vous les pubs ?","Parlez-moi des reels","Que comprend le SEO ?","Comment les leads sont-ils automatisés ?","Tarifs"],
+   fallback:"Je peux vous aider sur la publicité, les reels, le SEO, l'automatisation et les tarifs. Lequel vous intéresse ?",
+   lead:"Merci ! Vos coordonnées sont chez notre équipe, qui vous contactera bientôt.",
+   archT:"Comment fonctionne la plateforme",
+   archS:"Du premier clic publicitaire à un message sur le téléphone de votre équipe. Sélectionnez une étape.",
+   run:"Lancer un lead test",
+   det:"Détecté",
+   voiceReady:"Voix Prête",
+   speaking:"Parle à voix haute…",
+   listening:"Écoute… Parlez",
+   listenBtn:"Écouter",
+   hearVoice:"Écouter la voix",
+   heroTag:"IA Vocale Interactive"
+ },
+ es:{
+   name:"Español",
+   heroT:"Haz crecer tu negocio con una IA que habla con cada cliente.",
+   heroS:"Los anuncios traen visitas. Nuestra IA multilingüe responde, cualifica cada lead y avisa a tu equipo al instante.",
+   greet:"¡Hola! Soy la IA de voz de Ritual. Puedo explicarte anuncios, reels, SEO y automatizaciones. ¡Puedes hablarme o escribirme!",
+   ph:"Escribe o pulsa el micro…",
+   send:"Enviar",
+   chips:["¿Cómo gestionan los anuncios?","Háblame de los reels","¿Qué incluye el SEO?","¿Cómo se automatizan los leads?","Precios"],
+   fallback:"Puedo ayudarte con anuncios, reels, SEO, automatización y precios. ¿Cuál te interesa?",
+   lead:"¡Gracias! Tus datos están con nuestro equipo y te contactará pronto.",
+   archT:"Cómo funciona la plataforma",
+   archS:"Del primer clic en un anuncio a un mensaje en el móvil de tu equipo. Selecciona un paso.",
+   run:"Probar con un lead de ejemplo",
+   det:"Detectado",
+   voiceReady:"Voz Lista",
+   speaking:"Hablando…",
+   listening:"Escuchando… Habla",
+   listenBtn:"Escuchar",
+   hearVoice:"Escuchar voz",
+   heroTag:"IA de Voz Activa"
+ }
+};
+
+/* ============ 4. PLATFORM STEPS ============ */
+const STEPS = [
+ {t:"Targeted global ads",d:"Meta and Google campaigns are deployed per country and language. Each ad opens this page, so the AI greets the visitor in the language they saw the ad in."},
+ {t:"Multilingual AI brain",d:"The browser language is detected the moment the page opens. The AI answers from your business knowledge, asks qualifying questions and captures name, email and need."},
+ {t:"Secure backend proxy",d:"A small obfuscated PHP file receives the lead server-side. Webhook URLs and API keys live only there, never in the visitor's browser."},
+ {t:"Make.com / n8n engine",d:"The central hub validates the lead, enriches it, applies routing rules and triggers every follow-up action in parallel."},
+ {t:"Instant action",d:"A new row lands in Google Sheets and your team gets a live Telegram or WhatsApp alert with the lead's details and language."}
+];
+
+/* ============ 5. LANGUAGE DETECTION ============ */
+function detectLang(){
+  const saved = localStorage.getItem('lang'); if(saved && UI[saved]) return saved;
+  const list = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language||'en'];
+  for(const l of list){ const c=l.toLowerCase().split('-')[0]; if(UI[c]) return c; }
+  return 'en';
+}
+let lang = detectLang(), history = [], leadSent = false;
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ============ 6. SPEECH & VOICE ENGINE ============ */
+let voiceEnabled = true;
+let isSpeaking = false;
+let currentVoiceBtn = null;
+let voices = [];
+
+function loadVoices(){
+  if('speechSynthesis' in window){
+    voices = window.speechSynthesis.getVoices() || [];
+  }
+}
+if('speechSynthesis' in window){
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+function getVoiceForLang(langCode){
+  if(!voices.length) loadVoices();
+  const code = { en:'en', de:'de', fr:'fr', es:'es' }[langCode] || 'en';
+  return voices.find(v => v.lang.toLowerCase().startsWith(code) && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Neural') || v.name.includes('Samantha') || v.name.includes('Microsoft'))) ||
+         voices.find(v => v.lang.toLowerCase().startsWith(code)) || null;
+}
+
+function setSpeakingUI(speaking, textSnippet = ''){
+  isSpeaking = speaking;
+  const card = $('chatCard');
+  const badge = $('voiceStatusBadge');
+  const bText = $('voiceStatusText');
+  const strip = $('voiceLiveStripText');
+
+  if(speaking){
+    card?.classList.add('is-speaking');
+    if(badge){
+      badge.className = 'voice-badge speaking';
+      bText.textContent = UI[lang].speaking || 'Speaking…';
+    }
+    if(strip){
+      strip.innerHTML = `Speaking in <b>${UI[lang].name}</b>: "${esc(textSnippet.slice(0, 42))}${textSnippet.length > 42 ? '…' : ''}"`;
+    }
+  } else {
+    card?.classList.remove('is-speaking');
+    if(badge){
+      badge.className = 'voice-badge ready';
+      bText.textContent = UI[lang].voiceReady || 'Voice Ready';
+    }
+    if(strip){
+      strip.innerHTML = `AI Voice Synthesis: <b style="color:var(--c1)">Online & Interactive</b>`;
+    }
+    if(currentVoiceBtn){
+      currentVoiceBtn.classList.remove('speaking');
+      currentVoiceBtn.innerHTML = `<span>🔊</span> <span>${UI[lang].listenBtn || 'Listen'}</span>`;
+      currentVoiceBtn = null;
+    }
+  }
+}
+
+function stopSpeech(){
+  if('speechSynthesis' in window){
+    window.speechSynthesis.cancel();
+  }
+  setSpeakingUI(false);
+}
+
+function speakText(text, btnElement = null){
+  if(!('speechSynthesis' in window)) return;
+  stopSpeech();
+  if(!voiceEnabled && !btnElement) return;
+
+  const clean = text.replace(/[*_#`[\]()]/g, ' ').replace(/\s+/g, ' ').trim();
+  if(!clean) return;
+
+  const utter = new SpeechSynthesisUtterance(clean);
+  const voice = getVoiceForLang(lang);
+  if(voice) utter.voice = voice;
+  utter.lang = { en:'en-US', de:'de-DE', fr:'fr-FR', es:'es-ES' }[lang] || 'en-US';
+  utter.rate = 1.0;
+  utter.pitch = 1.02;
+
+  if(btnElement){
+    currentVoiceBtn = btnElement;
+    btnElement.classList.add('speaking');
+    btnElement.innerHTML = `<span class="mini-bars"><span></span><span></span><span></span></span> <span>${UI[lang].speaking || 'Speaking…'}</span>`;
+  }
+
+  utter.onstart = () => setSpeakingUI(true, clean);
+  utter.onend = () => setSpeakingUI(false);
+  utter.onerror = () => setSpeakingUI(false);
+
+  window.speechSynthesis.speak(utter);
+}
+
+/* ============ 7. SPEECH RECOGNITION (MIC) ============ */
+let recognition = null;
+let isListening = false;
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+function setupMic(){
+  const btn = $('micBtn');
+  if(!SpeechRec){
+    if(btn){
+      btn.title = "Voice recognition not supported in this browser";
+      btn.style.opacity = "0.6";
+    }
+    return;
+  }
+  recognition = new SpeechRec();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onstart = () => {
+    isListening = true;
+    btn.classList.add('listening');
+    $('inp').placeholder = UI[lang].listening || "Listening… Speak now";
+    const badge = $('voiceStatusBadge');
+    if(badge){
+      badge.className = 'voice-badge listening';
+      $('voiceStatusText').textContent = "Listening…";
+    }
+  };
+  recognition.onresult = (e) => {
+    const text = e.results[0][0].transcript;
+    $('inp').value = text;
+    ask(text);
+  };
+  recognition.onerror = () => {
+    isListening = false;
+    btn.classList.remove('listening');
+    $('inp').placeholder = UI[lang].ph;
+    setSpeakingUI(false);
+  };
+  recognition.onend = () => {
+    isListening = false;
+    btn.classList.remove('listening');
+    $('inp').placeholder = UI[lang].ph;
+    setSpeakingUI(false);
+  };
+
+  btn.onclick = () => {
+    if(isListening){
+      recognition.stop();
+    } else {
+      stopSpeech();
+      recognition.lang = { en:'en-US', de:'de-DE', fr:'fr-FR', es:'es-ES' }[lang] || 'en-US';
+      try { recognition.start(); } catch(err){}
+    }
+  };
+}
+
+/* ============ 8. RENDER & UI ============ */
+function applyLang(greet){
+  const u = UI[lang]; document.documentElement.lang = lang;
+  $('langSel').value = lang;
+  $('heroT').textContent=u.heroT; $('heroS').textContent=u.heroS;
+  $('inp').placeholder=u.ph; $('send').textContent=u.send;
+  $('archT').textContent=u.archT; $('archS').textContent=u.archS; $('run').textContent=u.run;
+  $('hearDemoLabel').textContent = u.hearVoice;
+  $('heroVoiceTag').textContent = u.heroTag;
+  $('detectedVoiceLang').textContent = lang.toUpperCase();
+  $('voiceStatusText').textContent = u.voiceReady;
+
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  $('detected').textContent = `${u.det}: ${u.name}${tz?' · '+tz:''}`;
+  $('mode').textContent = CONFIG.PROXY_URL ? 'live AI' : 'demo mode';
+
+  for(const id of ['chips','chipsHero']){
+    $(id).innerHTML = u.chips.map(c=>`<button class="chip">${esc(c)}</button>`).join('');
+  }
+  document.querySelectorAll('#chips .chip, #chipsHero .chip').forEach(b=>b.onclick=()=>ask(b.textContent));
+
+  if(greet){
+    $('log').innerHTML=''; history=[];
+    bot(u.greet, false);
+  }
+}
+
+function add(cls,text){
+  const d=document.createElement('div');
+  d.className='msg '+cls;
+  d.textContent=text;
+  $('log').appendChild(d);
+  $('log').scrollTop=1e6;
+  return d;
+}
+
+function bot(t, autoSpeak = true){
+  history.push({role:'assistant',content:t});
+  const d=document.createElement('div');
+  d.className='msg bot';
+  d.innerHTML=`<div>${esc(t)}</div>
+    <div class="mt-2.5 flex items-center justify-between border-t border-blue-100/60 pt-1.5">
+      <button class="msg-voice-action" type="button" title="Listen to this message">
+        <span>🔊</span> <span>${UI[lang].listenBtn || 'Listen'}</span>
+      </button>
+      <span class="text-[10px] text-gray-400 mono">AI Voice</span>
+    </div>`;
+  $('log').appendChild(d);
+  $('log').scrollTop=1e6;
+
+  const voiceBtn = d.querySelector('.msg-voice-action');
+  voiceBtn.onclick = () => {
+    if(voiceBtn.classList.contains('speaking')){
+      stopSpeech();
+    } else {
+      speakText(t, voiceBtn);
+    }
+  };
+
+  if(autoSpeak && voiceEnabled){
+    speakText(t, voiceBtn);
+  }
+  return d;
+}
+
+function typing(){
+  const d=document.createElement('div');
+  d.className='msg bot';
+  d.innerHTML='<span class="dot">●</span> <span class="dot">●</span> <span class="dot">●</span>';
+  $('log').appendChild(d);
+  $('log').scrollTop=1e6;
+  return d;
+}
+
+/* ============ 9. AI BRAIN ============ */
+function localAnswer(q){
+  const s=q.toLowerCase(); let best=null, score=0;
+  for(const e of KB.entries){ const n=e.keywords.filter(k=>s.includes(k)).length; if(n>score){score=n;best=e;} }
+  return best ? (best.answer[lang]||best.answer.en) : UI[lang].fallback;
+}
+
+async function proxy(payload){
+  const r = await fetch(CONFIG.PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lang,...payload})});
+  return r.ok ? r.json() : {};
+}
+
+async function ask(text){
+  text=text.trim(); if(!text) return;
+  stopSpeech();
+  add('usr',text); history.push({role:'user',content:text}); $('inp').value='';
+  const t=typing(); await new Promise(r=>setTimeout(r,550));
+  const email=(text.match(/[^\s@]+@[^\s@]+\.[^\s@]+/)||[])[0];
+  let reply;
+  try{
+    if(email && !leadSent){
+      leadSent=true;
+      if(CONFIG.PROXY_URL) await proxy({type:'lead',lead:{email,message:text,page:location.href,ts:new Date().toISOString()}});
+      reply=UI[lang].lead;
+    } else if(CONFIG.PROXY_URL){
+      const r=await proxy({type:'chat',message:text,history:history.slice(-8),knowledge:KB});
+      reply=r.reply||localAnswer(text);
+    } else reply=localAnswer(text);
+  }catch(e){ reply=localAnswer(text); }
+  t.remove();
+  bot(reply, true);
+}
+
+/* ============ 10. ARCHITECTURE SECTION ============ */
+function showStep(i){
+  document.querySelectorAll('.step').forEach((s,j)=>s.classList.toggle('on',i===j));
+  $('prog').style.width=((i+1)/STEPS.length*100)+'%';
+  $('detail').innerHTML=`<div class="disp font-bold text-lg mb-1">${i+1}. ${STEPS[i].t}</div><p>${STEPS[i].d}</p>`;
+}
+$('steps').innerHTML=STEPS.map((s,i)=>`<button class="step" data-i="${i}"><div class="n">${i+1}</div><div class="disp font-bold mt-3 leading-tight text-[15px]">${s.t}</div></button>`).join('');
+document.querySelectorAll('.step').forEach(b=>b.onclick=()=>showStep(+b.dataset.i));
+$('run').onclick=async()=>{ for(let i=0;i<STEPS.length;i++){ showStep(i); await new Promise(r=>setTimeout(r,1300)); } };
+
+/* ============ 11. EVENTS & INIT ============ */
+$('send').onclick=()=>ask($('inp').value);
+$('inp').addEventListener('keydown',e=>{ if(e.key==='Enter') ask($('inp').value); });
+$('langSel').onchange=e=>{
+  stopSpeech();
+  lang=e.target.value;
+  localStorage.setItem('lang',lang);
+  applyLang(true);
+};
+
+// Voice Mute Toggle
+$('voiceToggle').onclick = () => {
+  voiceEnabled = !voiceEnabled;
+  $('vIconOn').classList.toggle('hidden', !voiceEnabled);
+  $('vIconOff').classList.toggle('hidden', voiceEnabled);
+  if(!voiceEnabled){
+    stopSpeech();
+  }
+};
+
+// Hear Voice Demo Button
+$('hearDemoBtn').onclick = () => {
+  const currentMsg = history.filter(h => h.role === 'assistant').slice(-1)[0];
+  const textToRead = currentMsg ? currentMsg.content : UI[lang].greet;
+  speakText(textToRead);
+};
+
+$('yr').textContent=new Date().getFullYear();
+
+function tick(){
+  const t=new Date().toLocaleTimeString([], {hour12:false});
+  $('hud').innerHTML=`<span>AI <b>ONLINE</b></span><span>VOICE <b>ACTIVE 🎙️</b></span><span>LANG <b>${lang.toUpperCase()}</b></span><span>${t}</span>`;
+}
+setInterval(tick,1000);
+
+setupMic();
+applyLang(true);
+showStep(0);
+tick();
+</script>
+</body>
+</html>
