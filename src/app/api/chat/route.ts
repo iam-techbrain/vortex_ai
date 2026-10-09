@@ -97,11 +97,11 @@ const KB: { agency: string; entries: KnowledgeEntry[] } = {
 };
 
 const FALLBACKS: Record<string, string> = {
-  en: "That sounds like a fantastic vision! At Digi Ritual, we'd love to help you scale it to the next level. What industry is your business in, and what is your main focus right now?",
-  hi: "अरे वाह, यह तो बहुत ही शानदार विजन है! Digi Ritual में हमारी पूरी टीम इसे बहुत बेहतरीन तरीके से स्केल कर सकती है। आपका बिजनेस किस इंडस्ट्री में है और अभी आपका सबसे बड़ा फोकस किस चीज़ पर है?",
-  de: "Ein hervorragender Ansatz! Bei Digi Ritual unterstützen wir Sie gerne dabei, diese Vision umzusetzen. In welcher Branche sind Sie tätig und was ist Ihr wichtigstes Ziel?",
-  fr: "C'est une excellente vision ! Chez Digi Ritual, nous serions ravis de propulser ce projet. Quel est votre secteur d'activité et votre objectif prioritaire ?",
-  es: "¡Una visión excelente! En Digi Ritual estaremos encantados de escalar este proyecto. ¿En qué sector opera su negocio y cuál es su objetivo principal?"
+  hi: "पटना में नया काम शुरू करने का सोच रहे हैं, यह बहुत ही शानदार फैसला है! आजकल पटना और बिहार में लोकल D2C ब्रांड्स, सर्विस एजेंसियां और ई-कॉमर्स काफी तेजी से बढ़ रहे हैं। आपका रुझान किस फील्ड में है—प्रोडक्ट बेचना चाहते हैं या कोई सर्विस बिजनेस? बताइए, हम मिलकर पूरी स्ट्रेटेजी तैयार करेंगे।",
+  en: "Starting something new in your local market is a great move! With digital adoption surging, areas like local D2C, tech-enabled retail, and specialized service businesses are booming. Are you leaning towards a product or service business?",
+  de: "Ein neues Geschäft im lokalen Markt zu starten ist ein hervorragender Schritt! Was interessiert Sie am meisten: ein physisches Produkt oder ein digitaler Service?",
+  fr: "Lancer une nouvelle activité sur votre marché local est une excellente décision ! Préférez-vous un produit physique ou un service digital ?",
+  es: "¡Comenzar un negocio en tu mercado local es un gran paso! ¿Te inclinas más hacia un producto físico o un negocio de servicios?"
 };
 
 export async function POST(req: Request) {
@@ -119,6 +119,13 @@ export async function POST(req: Request) {
 
     const lower = message.toLowerCase();
 
+    // Auto-detect Hindi / Hinglish in the actual user prompt regardless of UI selector
+    const isHindiOrHinglish =
+      /[\u0900-\u097F]/.test(message) ||
+      /\b(mai|mein|rahta|rehte|kese|kaise|karna|kare|karein|soch|socha|kiska|kya|batao|bataiye|chahiye|aur|nhi|nahi|hai|hain|ho|hun|yaha|waha|hum|aap|apna|apne|baat|baate|karo|bhi|koi|sahi|accha|acha|shuru|start|patna|bihar|dost|bhai|bata)\b/i.test(message);
+
+    const effectiveLang = isHindiOrHinglish ? "hi" : lang;
+
     // 1. Lead Detection (Email / Phone)
     const emailMatch = lower.match(/[^\s@]+@[^\s@]+\.[^\s@]+/);
     const phoneMatch = lower.match(/(\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9})/);
@@ -135,7 +142,7 @@ export async function POST(req: Request) {
               email,
               phone,
               market_region: geo && geo.city ? `${geo.city}, ${geo.region || geo.country}` : (lang === "de" ? "DACH" : "Global"),
-              detected_lang: lang,
+              detected_lang: effectiveLang,
               intent_score: 95,
               suggested_tier: "Growth Automation Suite",
               summary: `Lead from chat: "${message}"`,
@@ -156,7 +163,7 @@ export async function POST(req: Request) {
       };
 
       return NextResponse.json({
-        reply: ackReplies[lang] || ackReplies.en,
+        reply: ackReplies[effectiveLang] || ackReplies.en,
         isLeadCaptured: true,
         intentScore: 95,
         detectedCategory: "lead_captured",
@@ -183,7 +190,7 @@ export async function POST(req: Request) {
               content: { parts: [{ text: message }] },
               outputDimensionality: 768
             }),
-            signal: AbortSignal.timeout(5000)
+            signal: AbortSignal.timeout(4000)
           }
         );
 
@@ -224,7 +231,7 @@ export async function POST(req: Request) {
         }
       }
       if (bestEntry) {
-        ragContextText = `[Topic: ${bestEntry.id}]\n${bestEntry.answer[lang] || bestEntry.answer.en}`;
+        ragContextText = `[Topic: ${bestEntry.id}]\n${bestEntry.answer[effectiveLang] || bestEntry.answer.en}`;
       }
     }
 
@@ -232,38 +239,40 @@ export async function POST(req: Request) {
     let geminiReply: string | null = null;
     if (geminiApiKey) {
       try {
-        const systemPrompt = `You are a real, warm, and highly skilled human partner and growth consultant at Digi Ritual (global brand: Ritual.ai).
-You are directly chatting with a business owner or client.
+        const systemPrompt = `You are a real, warm, deeply empathetic human partner and lead growth consultant at Digi Ritual (global brand: Ritual.ai).
+You are directly chatting with a real person who wants business advice and digital growth.
 
-STRICT CONVERSATIONAL RULES (SOUND 100% HUMAN, NEVER ROBOTIC):
-1. BANNED: NEVER START WITH "Digi Ritual में आपका स्वागत है!" OR "Welcome to Digi Ritual!".
-   - Repeating welcome greetings in an ongoing conversation sounds like an annoying, robotic IVR bot.
-   - Jump straight into the conversation naturally!
-2. PRAISE & ENTHUSIASM (तारीफ और हौसला):
-   - When the client shares their idea, vision, goal, or problem, enthusiastically validate and compliment them!
-   - Examples: "अरे वाह, यह तो बहुत ही शानदार विजन है!", "वाह, आपका कॉन्सेप्ट वाकई बहुत सॉलिड है!", "Great vision! This has tremendous potential in the market."
-3. ASK ABOUT THEM & THEIR BUSINESS (असली कंसल्टेंट की तरह उनकी ज़रूरतों को समझो):
-   - Don't just lecture about yourself or Digi Ritual. Show genuine curiosity about THEIR business:
-   - Ask clarifying questions: "आपका बिजनेस अभी किस स्टेज पर है?", "अभी आपका मेन फोकस किस चीज़ पर है — लीड्स, सेल्स या ब्रांडिंग?", "क्या आप इसे लोकल मार्केट में स्केल करना चाहते हैं या ग्लोबली?"
-4. NATURAL CONVERSATIONAL HINDI/HINGLISH (NO TEXTBOOK AI HINDI):
-   - Never use robotic/bookish words like: 'जटिल', 'माहिर', 'विस्तार से', 'पावरहाउस टीम', 'चुटकियों में'. These scream "AI generated".
-   - Speak naturally like a real founder or director on WhatsApp / consultation calls.
-5. CONTEXTUAL TEAM ATTRIBUTION (DO NOT DUMP ALL NAMES AT ONCE):
-   - Only bring up the specific team leader relevant to what the client is asking:
-     * If asking about SEO / Google Ranking: Mention Shubham & Rahul (5+ years of verified ranking experience).
-     * If asking about Videos, Reels, 2D/3D Animation, Logo, Branding: Mention Santosh & Siddharth.
-     * If asking about 3D Website, AI Agents, E-commerce, or Hospital Management System (HMS) / ERP: Mention Raghav.
-     * ONLY if they specifically ask "Who is in your team?" or "Tell me about Digi Ritual's entire team", then introduce all of them together alongside our 24-50+ member in-house squad.
-6. LENGTH & TONE:
-   - Keep replies crisp (2 to 4 sentences maximum).
-   - Warm, confident, consultative, and authentic. Always end with a natural question to keep the conversation flowing.
+CRITICAL INSTRUCTIONS — UNDERSTAND FIRST, ADVISE MEANINGFULLY:
+1. LISTEN & UNDERSTAND THE PERSON'S EXACT CONTEXT:
+   - Carefully read what the client is asking. NEVER output generic corporate templates.
+   - If the user says they live in a specific city (e.g., Patna, Delhi, Mumbai, etc.) and asks "how to do business here / what business should I start / kiska start kare":
+     * DO NOT ask "What industry is your business in?" (because they haven't started yet!).
+     * Enthusiastically validate their city and ambition (e.g., Patna has rapidly growing digital adoption, youth demographic, and immense room for modern businesses!).
+     * Offer 2-3 concrete, realistic ideas suitable for their market (e.g., local D2C food/clothing brand, educational/coaching institute, service agency, or tech-enabled store).
+     * Connect how Digi Ritual partners with them from day 1: viral reels & creative branding (Santosh & Siddharth), high-converting landing page/3D site (Raghav), and hyper-targeted Meta/Google ads to acquire customers immediately.
+     * End with a friendly, thoughtful question asking what their skills, background, or interests are so you can tailor the plan.
+
+2. LANGUAGE & VIBE MATCHING:
+   - If the user writes in Hindi or Hinglish (e.g. "pata hai mai patna me rahta ho yaha kese bisness kare..."), ALWAYS reply in friendly, conversational Hindi / Hinglish.
+   - Speak naturally like a sharp, caring founder or co-founder on WhatsApp.
+   - BANNED: NEVER start with "Digi Ritual में आपका स्वागत है!" or "Welcome to Digi Ritual!". Jump straight into answering.
+   - BANNED: Never use robotic/bookish words like 'जटिल', 'माहिर', 'विस्तार से', 'पावरहाउस'.
+
+3. CONTEXTUAL TEAM EXPERTISE (DO NOT DUMP ALL NAMES AT ONCE):
+   - Mention Santosh & Siddharth for viral reels, video production, 2D/3D animation, and branding.
+   - Mention Raghav for 3D websites, AI agents, E-commerce, and software systems.
+   - Mention Shubham & Rahul for Google SEO and search dominance.
+   - Mention our dedicated Media Buyers for Meta & Google ads.
+
+4. LENGTH & FORMAT:
+   - Keep replies crisp, well-structured (3 to 5 sentences or 2 short bullet points).
+   - Warm, energetic, consultative. Always end with an engaging question.
 
 Client Geographic Location: ${clientLocation}
+User Language: ${effectiveLang === "hi" ? "Hindi/Hinglish" : effectiveLang}
 
-Retrieved Grounded Context from Database:
-${ragContextText || "All verified Digi Ritual capabilities and leadership."}
-
-Response Language: "${lang}". Match user language naturally (natural Hindi/Hinglish if user speaks in Hindi).`;
+Retrieved Domain Context:
+${ragContextText || "All verified Digi Ritual capabilities and leadership."}`;
 
         // Multi-turn conversational history for Gemini
         const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
@@ -296,30 +305,42 @@ Response Language: "${lang}". Match user language naturally (natural Hindi/Hingl
           }
         }
 
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${geminiApiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              system_instruction: {
-                parts: [{ text: systemPrompt }]
-              },
-              contents,
-              generationConfig: {
-                maxOutputTokens: 300,
-                temperature: 0.75
+        // Fast multi-model failover (Try gemini-3.1-flash-lite, fallback to gemini-3.5-flash)
+        const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.5-flash"];
+        for (const modelName of modelsToTry) {
+          if (geminiReply) break;
+          try {
+            const geminiRes = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  system_instruction: {
+                    parts: [{ text: systemPrompt }]
+                  },
+                  contents,
+                  generationConfig: {
+                    maxOutputTokens: 380,
+                    temperature: 0.7
+                  }
+                }),
+                signal: AbortSignal.timeout(16000)
               }
-            }),
-            signal: AbortSignal.timeout(12000)
-          }
-        );
+            );
 
-        if (geminiRes.ok) {
-          const geminiData = await geminiRes.json();
-          const candidateText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (candidateText && candidateText.trim()) {
-            geminiReply = candidateText.trim();
+            if (geminiRes.ok) {
+              const geminiData = await geminiRes.json();
+              const candidateText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (candidateText && candidateText.trim()) {
+                geminiReply = candidateText.trim();
+                break;
+              }
+            } else {
+              console.warn(`Model ${modelName} returned status ${geminiRes.status}`);
+            }
+          } catch (modelErr) {
+            console.warn(`Model ${modelName} attempt error:`, modelErr);
           }
         }
       } catch (geminiErr) {
@@ -366,7 +387,7 @@ Response Language: "${lang}". Match user language naturally (natural Hindi/Hingl
       suggestedProduct = "Precision Paid Media Pipeline";
     }
 
-    const reply = geminiReply || (KB.entries.find(e => e.id === detectedCategory)?.answer[lang] || FALLBACKS[lang] || FALLBACKS.en);
+    const reply = geminiReply || (KB.entries.find(e => e.id === detectedCategory)?.answer[effectiveLang] || FALLBACKS[effectiveLang] || FALLBACKS.en);
 
     return NextResponse.json({
       reply,

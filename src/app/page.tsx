@@ -606,7 +606,7 @@ export default function HomePage() {
                         title="Switch between Free Voice (0 tokens) and ElevenLabs"
                       >
                         <option value="system">💻 Free</option>
-                        <option value="elevenlabs">⚡ ElevenLabs</option>
+                        <option value="elevenlabs" disabled>⚡ ElevenLabs</option>
                       </select>
                       <div className="pointer-events-none absolute inset-y-0 right-1 sm:right-2 flex items-center text-slate-400 text-[8px] sm:text-[9px]">
                         ▼
