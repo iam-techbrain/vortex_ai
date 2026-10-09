@@ -474,26 +474,40 @@ export default function HomePage() {
         {/* Hero Section */}
         <section className="max-w-6xl mx-auto px-5 pt-12 pb-16 grid lg:grid-cols-2 gap-10 items-start">
           <div className="lg:pt-6">
-            <div className="hero-voice-pill">
-              <div className="voice-avatar-wrap" style={{ width: 20, height: 20 }}>
-                <div className="voice-orb" style={{ width: 16, height: 16 }}>
-                  <span className="voice-mouth" style={{ width: 6, height: 2 }}></span>
-                </div>
-              </div>
-              <span><b>{currentUI.heroTag}</b> · Real-time Multilingual Speech</span>
+            {/* Sleek Unified Status Pill */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200/90 text-xs text-slate-700 mb-6 shadow-2xs font-medium">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="font-semibold text-slate-900">Voice-Activated AI</span>
+              <span className="text-slate-300">·</span>
+              <span className="text-slate-600">Multilingual</span>
+              {geoInfo?.city && (
+                <>
+                  <span className="text-slate-300">·</span>
+                  <span className="text-slate-600">📍 {geoInfo.city}</span>
+                </>
+              )}
+              {currentTime && (
+                <>
+                  <span className="text-slate-300">·</span>
+                  <span className="text-slate-400 font-mono text-[11px]">{currentTime}</span>
+                </>
+              )}
             </div>
 
-            <div className="hud mono mb-6">
-              <span>AI <b>ONLINE</b></span>
-              <span>LOC <b>{geoInfo && geoInfo.city ? geoInfo.city.toUpperCase() : "LIVE"}</b></span>
-              <span>LANG <b>{lang.toUpperCase()}</b></span>
-              <span>{currentTime || "LIVE"}</span>
-            </div>
-
-            <h1 className="text-4xl sm:text-6xl font-extrabold leading-[1.03] text-slate-900">
-              {currentUI.heroT}
+            <h1 className="text-3xl sm:text-4xl lg:text-[44px] font-extrabold text-slate-900 leading-[1.18] tracking-tight max-w-xl">
+              {lang === "en" ? (
+                <>
+                  Grow your business with an AI <br className="hidden sm:inline" />
+                  that talks to every customer.
+                </>
+              ) : (
+                currentUI.heroT
+              )}
             </h1>
-            <p className="mt-5 text-slate-600 text-lg max-w-md leading-relaxed">
+            <p className="mt-5 text-slate-600 text-base sm:text-lg max-w-lg leading-relaxed">
               {currentUI.heroS}
             </p>
 
@@ -531,67 +545,79 @@ export default function HomePage() {
             )}
             <div className="glow flex-1 min-h-0">
             <div id="chatCard" className={`card overflow-hidden flex flex-col h-full ${isSpeaking ? "is-speaking" : ""}`}>
-              {/* Clean Human-Friendly Chat Header */}
-              <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between bg-white">
-                <div className="flex items-center gap-3">
-                  {/* Subtle Speaking Avatar */}
-                  <div className="voice-avatar-wrap" style={{ width: 34, height: 34 }}>
-                    <div className="voice-ring r1"></div>
-                    <div className="voice-ring r2"></div>
-                    <div className="voice-orb" style={{ width: 30, height: 30 }}>
-                      <span className="voice-mouth"></span>
+              {/* Spacious, Premium AI Chat Header */}
+              <div className="px-4 sm:px-5 py-3 border-b border-gray-100 flex items-center justify-between gap-3 bg-white">
+                {/* Left: AI Avatar, Identity & Status */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="relative flex-shrink-0">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                      isSpeaking
+                        ? "bg-slate-950 text-emerald-400 shadow-md ring-2 ring-emerald-400/40"
+                        : "bg-slate-900 text-white shadow-xs"
+                    }`}>
+                      {isSpeaking ? (
+                        <div className="flex items-center gap-0.5 h-3.5 px-0.5">
+                          <span className="w-0.5 h-3 bg-emerald-400 rounded-full animate-pulse"></span>
+                          <span className="w-0.5 h-4 bg-emerald-300 rounded-full animate-pulse"></span>
+                          <span className="w-0.5 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                          <span className="w-0.5 h-3.5 bg-emerald-300 rounded-full animate-pulse"></span>
+                        </div>
+                      ) : (
+                        <svg className="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                        </svg>
+                      )}
                     </div>
+                    {/* Live indicator dot */}
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${
+                      isSpeaking ? "bg-emerald-500 animate-ping" : isListening ? "bg-amber-500 animate-pulse" : "bg-emerald-500"
+                    }`}></span>
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm text-slate-900 tracking-tight">Digi Ritual AI</span>
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                      <span className="font-bold text-sm text-slate-900 tracking-tight whitespace-nowrap">Digi Ritual AI</span>
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
                         isSpeaking
-                          ? "bg-slate-100 text-slate-800 border border-slate-200"
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                           : isListening
                           ? "bg-amber-50 text-amber-700 border border-amber-200"
                           : "bg-emerald-50 text-emerald-700 border border-emerald-200"
                       }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${
-                          isSpeaking ? "bg-slate-800 animate-pulse" : isListening ? "bg-amber-500 animate-ping" : "bg-emerald-500"
+                          isSpeaking ? "bg-emerald-500 animate-pulse" : isListening ? "bg-amber-500 animate-ping" : "bg-emerald-500"
                         }`}></span>
-                        <span>{isSpeaking ? "Speaking…" : isListening ? "Listening…" : "Online"}</span>
+                        <span>{isSpeaking ? "Speaking" : isListening ? "Listening" : "Online"}</span>
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      {isSpeaking ? `"${speakingSnippet}…"` : "Conversational growth assistant · Text or speak"}
+                    <p className="text-[11px] text-slate-400 truncate max-w-[170px] sm:max-w-none">
+                      {isSpeaking ? `"${speakingSnippet}…"` : "Conversational Growth Assistant"}
                     </p>
                   </div>
                 </div>
 
-                {/* Voice Engine & Auto-Speech Controls */}
-                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                  <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-full px-2.5 py-1 text-xs">
-                    <span className="text-slate-400 text-[11px] font-medium hidden md:inline">Voice:</span>
+                {/* Right: Clean Voice Engine & Auto-Speech Toggle */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Voice Engine Selector */}
+                  <div className="relative">
                     <select
                       value={voiceEngine}
                       onChange={e => {
                         setVoiceEngine(e.target.value as "system" | "elevenlabs");
                         stopSpeech();
                       }}
-                      className="bg-transparent font-medium text-slate-700 text-xs focus:outline-none cursor-pointer"
-                      title="Switch between free system voice (0 tokens) and ElevenLabs realistic voice"
+                      className="text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg pl-2 pr-6 py-1.5 focus:outline-none cursor-pointer appearance-none transition whitespace-nowrap"
+                      title="Switch between Free Voice (0 tokens) and ElevenLabs"
                     >
-                      <option value="system">💻 Free Voice (0 Tokens)</option>
-                      <option value="elevenlabs">⚡ ElevenLabs (Realistic)</option>
+                      <option value="system">💻 Free Voice</option>
+                      <option value="elevenlabs">⚡ ElevenLabs</option>
                     </select>
-                  </div>
-                  {isSpeaking && (
-                    <div className="voice-wave-bars hidden sm:flex mr-1">
-                      <span className="vbar b1"></span>
-                      <span className="vbar b2"></span>
-                      <span className="vbar b3"></span>
-                      <span className="vbar b4"></span>
-                      <span className="vbar b5"></span>
+                    <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-slate-400 text-[9px]">
+                      ▼
                     </div>
-                  )}
+                  </div>
 
+                  {/* Auto-Speech Toggle Pill Button */}
                   <button
                     type="button"
                     onClick={() => {
@@ -599,15 +625,16 @@ export default function HomePage() {
                       setAutoSpeak(next);
                       if (!next) stopSpeech();
                     }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition border cursor-pointer ${
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer whitespace-nowrap border ${
                       autoSpeak
-                        ? "bg-slate-900 border-slate-900 text-white shadow-sm"
+                        ? "bg-slate-900 border-slate-900 text-white shadow-2xs"
                         : "bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                     }`}
-                    title={autoSpeak ? "Auto-Speech is ON: AI speaks every reply automatically" : "Auto-Speech is OFF: Click speaker icon on any message to listen"}
+                    title={autoSpeak ? "Auto-Speech is ON: AI speaks aloud automatically" : "Auto-Speech is OFF: Click speaker icon on any message to listen"}
                   >
-                    <span>{autoSpeak ? "🔊" : "🔈"}</span>
-                    <span>{autoSpeak ? "Auto-Speech: ON" : "Auto-Speech: OFF"}</span>
+                    <span className="text-xs">{autoSpeak ? "🔊" : "🔈"}</span>
+                    <span className="hidden sm:inline">Auto-Speech:</span>
+                    <span className="font-semibold">{autoSpeak ? "ON" : "OFF"}</span>
                   </button>
                 </div>
               </div>
