@@ -110,6 +110,8 @@ export async function POST(req: Request) {
     const message: string = (body.message || "").trim();
     const lang: string = body.lang || "en";
     const rawHistory: Array<{ role: string; content: string }> = Array.isArray(body.history) ? body.history : [];
+    const geo = body.geo || null;
+    const clientLocation = geo ? `${geo.city}, ${geo.region}, ${geo.country}` : "Global";
 
     if (!message) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
@@ -132,7 +134,7 @@ export async function POST(req: Request) {
             {
               email,
               phone,
-              market_region: lang === "de" ? "DACH" : "Global",
+              market_region: geo && geo.city ? `${geo.city}, ${geo.region || geo.country}` : (lang === "de" ? "DACH" : "Global"),
               detected_lang: lang,
               intent_score: 95,
               suggested_tier: "Growth Automation Suite",
@@ -255,6 +257,8 @@ STRICT CONVERSATIONAL RULES (SOUND 100% HUMAN, NEVER ROBOTIC):
 6. LENGTH & TONE:
    - Keep replies crisp (2 to 4 sentences maximum).
    - Warm, confident, consultative, and authentic. Always end with a natural question to keep the conversation flowing.
+
+Client Geographic Location: ${clientLocation}
 
 Retrieved Grounded Context from Database:
 ${ragContextText || "All verified Digi Ritual capabilities and leadership."}

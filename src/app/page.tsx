@@ -126,6 +126,16 @@ const STEPS = [
   { t: "Instant WhatsApp Alert", d: "Your sales team gets an immediate VIP notification alert on WhatsApp or Telegram with the lead dossier within 2 seconds." }
 ];
 
+interface GeoData {
+  city: string;
+  region: string;
+  country: string;
+  countryCode: string;
+  suggestedLang: SupportedLang;
+  suggestedLangLabel: string;
+  localNotes: string;
+}
+
 export default function HomePage() {
   const [lang, setLang] = useState<SupportedLang>("en");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -135,10 +145,13 @@ export default function HomePage() {
   const [isListening, setIsListening] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [autoSpeak, setAutoSpeak] = useState(false);
+  const [voiceEngine, setVoiceEngine] = useState<"system" | "elevenlabs">("system");
   const [speakingSnippet, setSpeakingSnippet] = useState("");
   const [activeStep, setActiveStep] = useState(0);
   const [currentTime, setCurrentTime] = useState("");
   const [currentlySpeakingIdx, setCurrentlySpeakingIdx] = useState<number | null>(null);
+  const [geoInfo, setGeoInfo] = useState<GeoData | null>(null);
+  const [showGeoToast, setShowGeoToast] = useState(false);
 
   const logEndRef = useRef<HTMLDivElement>(null);
   const chatFeedRef = useRef<HTMLDivElement>(null);
@@ -163,6 +176,24 @@ export default function HomePage() {
     setMessages([{ role: "assistant", content: UI_DATA[lang].greet }]);
     stopSpeech();
   }, [lang]);
+
+    // Auto-detect system location & suggest local language
+  useEffect(() => {
+    fetch("/api/geo")
+      .then(res => res.json())
+      .then((data: GeoData & { success: boolean }) => {
+        if (data && data.success) {
+          setGeoInfo(data);
+          const saved = localStorage.getItem("ritual_lang") as SupportedLang | null;
+          // If user hasn't explicitly customized language, adapt to local city language
+          if (!saved && data.suggestedLang && UI_DATA[data.suggestedLang]) {
+            setLang(data.suggestedLang);
+            setShowGeoToast(true);
+          }
+        }
+      })
+      .catch(e => console.warn("Geo lookup fallback", e));
+  }, []);
 
   // Clock in HUD
   useEffect(() => {
@@ -262,7 +293,13 @@ export default function HomePage() {
     const clean = text.replace(/[*_#`[\]()]/g, " ").replace(/\s+/g, " ").trim();
     if (!clean) return;
 
-    // 1. Try ElevenLabs AI Voice API
+    // 1. If Free System Voice is selected, skip ElevenLabs entirely (0 Tokens Used)
+    if (voiceEngine === "system") {
+      fallbackSpeech(clean, msgIdx);
+      return;
+    }
+
+    // 2. Otherwise Try ElevenLabs AI Voice API
     try {
       const res = await fetch("/api/tts", {
         method: "POST",
@@ -339,7 +376,8 @@ export default function HomePage() {
         body: JSON.stringify({
           message: textToSend,
           lang,
-          history: updatedHistory.slice(-6)
+          history: updatedHistory.slice(-6),
+          geo: geoInfo
         })
       });
 
@@ -400,8 +438,16 @@ export default function HomePage() {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
             </Link>
 
+            {geoInfo && geoInfo.city && (
+              <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-slate-50 border border-slate-200 text-slate-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>📍 {geoInfo.city}</span>
+                <span className="text-slate-300">|</span>
+                <span className="text-slate-800 font-medium">Suggested: {geoInfo.suggestedLangLabel}</span>
+              </div>
+            )}
             <span className="hidden sm:inline text-xs text-slate-400 font-mono">
-              Detected: {currentUI.name}
+              Lang: {currentUI.name}
             </span>
 
             <select
@@ -439,7 +485,7 @@ export default function HomePage() {
 
             <div className="hud mono mb-6">
               <span>AI <b>ONLINE</b></span>
-              <span>VOICE <b>ACTIVE 🎙️</b></span>
+              <span>LOC <b>{geoInfo && geoInfo.city ? geoInfo.city.toUpperCase() : "LIVE"}</b></span>
               <span>LANG <b>{lang.toUpperCase()}</b></span>
               <span>{currentTime || "LIVE"}</span>
             </div>
@@ -465,7 +511,25 @@ export default function HomePage() {
           </div>
 
           {/* Chat Container */}
-          <div className="glow" style={{ height: "min(640px, 80vh)" }}>
+          <div className="flex flex-col gap-2" style={{ height: "min(640px, 80vh)" }}>
+            {showGeoToast && geoInfo && (
+              <div className="px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs text-slate-700 animate-fadeIn shadow-xs">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">📍</span>
+                  <span>
+                    Connecting from <b>{geoInfo.city}, {geoInfo.region}</b>! Local language suggested: <b>{geoInfo.suggestedLangLabel}</b>.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowGeoToast(false)}
+                  className="text-slate-400 hover:text-slate-800 ml-2 font-bold cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            <div className="glow flex-1 min-h-0">
             <div id="chatCard" className={`card overflow-hidden flex flex-col h-full ${isSpeaking ? "is-speaking" : ""}`}>
               {/* Clean Human-Friendly Chat Header */}
               <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between bg-white">
@@ -501,8 +565,23 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Auto-Speech Toggle Pill */}
-                <div className="flex items-center gap-2">
+                {/* Voice Engine & Auto-Speech Controls */}
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-full px-2.5 py-1 text-xs">
+                    <span className="text-slate-400 text-[11px] font-medium hidden md:inline">Voice:</span>
+                    <select
+                      value={voiceEngine}
+                      onChange={e => {
+                        setVoiceEngine(e.target.value as "system" | "elevenlabs");
+                        stopSpeech();
+                      }}
+                      className="bg-transparent font-medium text-slate-700 text-xs focus:outline-none cursor-pointer"
+                      title="Switch between free system voice (0 tokens) and ElevenLabs realistic voice"
+                    >
+                      <option value="system">💻 Free Voice (0 Tokens)</option>
+                      <option value="elevenlabs">⚡ ElevenLabs (Realistic)</option>
+                    </select>
+                  </div>
                   {isSpeaking && (
                     <div className="voice-wave-bars hidden sm:flex mr-1">
                       <span className="vbar b1"></span>
@@ -569,32 +648,45 @@ export default function HomePage() {
                   </div>
                 ))}
 
-                {/* Animated Search & Thinking State */}
+                {/* High-Tech Animated Search & Reasoning State */}
                 {isTyping && (
-                  <div className="msg bot flex flex-col gap-2 p-3.5 bg-slate-50/90 border border-slate-200/90 rounded-2xl shadow-sm">
-                    <div className="flex items-center gap-2.5">
-                      <div className="relative flex items-center justify-center w-5 h-5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-25"></span>
-                        <span className="relative flex items-center justify-center w-5 h-5 rounded-full bg-slate-900 text-white">
-                          <svg className="w-2.5 h-2.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                        </span>
+                  <div className="msg bot flex flex-col gap-2.5 p-4 bg-white/95 border border-slate-200/90 rounded-2xl shadow-sm transition-all duration-300">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="relative flex items-center justify-center w-6 h-6">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-300 opacity-40"></span>
+                          <span className="relative flex items-center justify-center w-5 h-5 rounded-full bg-slate-900 text-white shadow-sm">
+                            <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
+                              <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-semibold text-slate-900 tracking-tight">Digi Ritual AI</span>
+                          <span className="text-[11px] text-slate-500 font-normal">is analyzing & searching knowledge</span>
+                          <span className="inline-flex items-center gap-0.5 ml-0.5">
+                            <span className="w-1 h-1 rounded-full bg-slate-700 animate-bounce [animation-delay:-0.3s]"></span>
+                            <span className="w-1 h-1 rounded-full bg-slate-700 animate-bounce [animation-delay:-0.15s]"></span>
+                            <span className="w-1 h-1 rounded-full bg-slate-700 animate-bounce"></span>
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
-                        <span>Digi Ritual AI searching knowledge</span>
-                        <span className="inline-flex items-center gap-0.5 ml-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-700 animate-bounce [animation-delay:-0.3s]"></span>
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-700 animate-bounce [animation-delay:-0.15s]"></span>
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-700 animate-bounce"></span>
-                        </span>
-                      </div>
+                      <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/60 hidden sm:inline-block">
+                        RAG + GEMINI
+                      </span>
                     </div>
 
-                    <div className="w-full bg-slate-200 rounded-full h-1 overflow-hidden">
-                      <div className="h-full bg-slate-900 rounded-full animate-shimmer-progress"></div>
+                    {/* Animated Skeleton Shimmer Lines */}
+                    <div className="space-y-1.5 pt-1">
+                      <div className="h-2 w-5/6 rounded-full bg-slate-100 overflow-hidden relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-slate-300/60 to-transparent animate-skeleton-shimmer"></div>
+                      </div>
+                      <div className="h-2 w-3/5 rounded-full bg-slate-100 overflow-hidden relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-slate-300/60 to-transparent animate-skeleton-shimmer" style={{ animationDelay: '0.2s' }}></div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -630,6 +722,7 @@ export default function HomePage() {
                 </button>
               </div>
             </div>
+          </div>
           </div>
         </section>
 
