@@ -265,11 +265,13 @@ CRITICAL INSTRUCTIONS — UNDERSTAND FIRST, ADVISE MEANINGFULLY:
    - Mention our dedicated Media Buyers for Meta & Google ads.
 
 4. LENGTH & FORMAT:
-   - Keep replies crisp, well-structured (3 to 5 sentences or 2 short bullet points).
+   - Keep replies crisp, engaging, and well-structured (3 to 5 sentences or 2-3 short bullet points).
+   - If giving bullet points, format each point on its own line: "* **Title:** Description".
    - Warm, energetic, consultative. Always end with an engaging question.
 
 Client Geographic Location: ${clientLocation}
 User Language: ${effectiveLang === "hi" ? "Hindi/Hinglish" : effectiveLang}
+Language Instruction: If user language is "fr" or location is France/Paris, reply in fluent, natural, professional French (Français) unless the user speaks in English. If "hi", reply in natural Hindi/Hinglish. If "de", reply in German. If "es", reply in Spanish.
 
 Retrieved Domain Context:
 ${ragContextText || "All verified Digi Ritual capabilities and leadership."}`;

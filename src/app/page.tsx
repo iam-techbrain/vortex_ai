@@ -131,13 +131,74 @@ interface GeoData {
   region: string;
   country: string;
   countryCode: string;
-  suggestedLang: SupportedLang;
+  suggestedLang: string;
   suggestedLangLabel: string;
+  flag?: string;
   localNotes: string;
 }
 
+function parseInlineFormatting(text: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={i} className="font-bold text-slate-900">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return part;
+  });
+}
+
+function FormattedMessage({ content }: { content: string }) {
+  const lines = content.split("\n");
+  const nodes: React.ReactNode[] = [];
+  let currentBullets: string[] = [];
+
+  const flushBullets = (keyIdx: number) => {
+    if (currentBullets.length > 0) {
+      nodes.push(
+        <ul key={`ul-${keyIdx}`} className="my-2 space-y-1.5 list-none pl-0">
+          {currentBullets.map((bulletText, bIdx) => (
+            <li key={bIdx} className="flex items-start gap-2 text-[13.5px] leading-relaxed">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-900 mt-2 flex-shrink-0"></span>
+              <div className="flex-1 text-slate-800">{parseInlineFormatting(bulletText)}</div>
+            </li>
+          ))}
+        </ul>
+      );
+      currentBullets = [];
+    }
+  };
+
+  lines.forEach((line, idx) => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("* ") || trimmed.startsWith("- ") || trimmed.startsWith("• ") || /^\d+\.\s/.test(trimmed)) {
+      const cleanText = trimmed.replace(/^(\*|-|•|\d+\.)\s+/, "");
+      currentBullets.push(cleanText);
+    } else {
+      flushBullets(idx);
+      if (trimmed === "") {
+        nodes.push(<div key={`spacer-${idx}`} className="h-1.5" />);
+      } else {
+        nodes.push(
+          <p key={`p-${idx}`} className="leading-relaxed my-0.5">
+            {parseInlineFormatting(trimmed)}
+          </p>
+        );
+      }
+    }
+  });
+
+  flushBullets(lines.length);
+
+  return <div className="space-y-0.5">{nodes}</div>;
+}
+
 export default function HomePage() {
-  const [lang, setLang] = useState<SupportedLang>("en");
+  const [lang, setLang] = useState<string>("en");
+  const [dynamicUI, setDynamicUI] = useState<Record<string, any>>(UI_DATA);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -153,40 +214,23 @@ export default function HomePage() {
   const [geoInfo, setGeoInfo] = useState<GeoData | null>(null);
   const [showGeoToast, setShowGeoToast] = useState(false);
 
+  const hasManuallyChosen = useRef(false);
   const logEndRef = useRef<HTMLDivElement>(null);
   const chatFeedRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const currentUI = UI_DATA[lang];
+  const currentUI = dynamicUI[lang] || UI_DATA[lang as keyof typeof UI_DATA] || UI_DATA.en;
 
-  // Auto-detect browser language on mount
-  useEffect(() => {
-    const saved = localStorage.getItem("ritual_lang") as SupportedLang | null;
-    if (saved && UI_DATA[saved]) {
-      setLang(saved);
-    } else if (typeof navigator !== "undefined") {
-      const browserCode = (navigator.language || "en").toLowerCase().slice(0, 2) as SupportedLang;
-      if (UI_DATA[browserCode]) setLang(browserCode);
-    }
-  }, []);
-
-  // Update greeting when language changes
-  useEffect(() => {
-    setMessages([{ role: "assistant", content: UI_DATA[lang].greet }]);
-    stopSpeech();
-  }, [lang]);
-
-  // Auto-detect system location & suggest local language
+  // Auto-detect browser language or system location on mount
   useEffect(() => {
     fetch("/api/geo")
       .then(res => res.json())
       .then((data: GeoData & { success: boolean }) => {
         if (data && data.success) {
           setGeoInfo(data);
-          const saved = localStorage.getItem("ritual_lang") as SupportedLang | null;
-          // If user hasn't explicitly customized language, adapt to local city language
-          if (!saved && data.suggestedLang && UI_DATA[data.suggestedLang]) {
+          // If user hasn't manually picked in current session, auto-adapt to local city language (e.g. Paris -> French)
+          if (!hasManuallyChosen.current && data.suggestedLang) {
             setLang(data.suggestedLang);
             setShowGeoToast(true);
           }
@@ -194,6 +238,31 @@ export default function HomePage() {
       })
       .catch(e => console.warn("Geo lookup fallback", e));
   }, []);
+
+  // Fetch dynamic translation if language is not in cache (supports any global language)
+  useEffect(() => {
+    if (lang && !dynamicUI[lang]) {
+      fetch("/api/translate-ui", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetLang: lang, city: geoInfo?.city || "" })
+      })
+        .then(res => res.json())
+        .then(d => {
+          if (d && d.success && d.ui) {
+            setDynamicUI(prev => ({ ...prev, [lang]: d.ui }));
+          }
+        })
+        .catch(err => console.warn("Dynamic UI translation err", err));
+    }
+  }, [lang, geoInfo?.city]);
+
+  // Update greeting when language changes
+  useEffect(() => {
+    const greeting = (dynamicUI[lang] || UI_DATA[lang as keyof typeof UI_DATA] || UI_DATA.en).greet;
+    setMessages([{ role: "assistant", content: greeting }]);
+    stopSpeech();
+  }, [lang, dynamicUI]);
 
   // Clock in HUD
   useEffect(() => {
@@ -256,7 +325,7 @@ export default function HomePage() {
   const fallbackSpeech = (clean: string, msgIdx?: number) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     const utter = new SpeechSynthesisUtterance(clean);
-    const langCodes: Record<SupportedLang, string> = { en: "en-US", hi: "hi-IN", de: "de-DE", fr: "fr-FR", es: "es-ES" };
+    const langCodes: Record<string, string> = { en: "en-US", hi: "hi-IN", de: "de-DE", fr: "fr-FR", es: "es-ES" };
     utter.lang = langCodes[lang] || "en-US";
     utter.rate = 1.0;
     utter.pitch = 1.02;
@@ -348,7 +417,7 @@ export default function HomePage() {
       recognitionRef.current.stop();
     } else {
       stopSpeech();
-      const langCodes: Record<SupportedLang, string> = { en: "en-US", hi: "hi-IN", de: "de-DE", fr: "fr-FR", es: "es-ES" };
+      const langCodes: Record<string, string> = { en: "en-US", hi: "hi-IN", de: "de-DE", fr: "fr-FR", es: "es-ES" };
       recognitionRef.current.lang = langCodes[lang] || "en-US";
       try {
         recognitionRef.current.start();
@@ -438,34 +507,66 @@ export default function HomePage() {
               <svg className="w-3.5 h-3.5 hidden sm:inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
             </Link>
 
-            {geoInfo && geoInfo.city && (
-              <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-slate-50 border border-slate-200 text-slate-600">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>📍 {geoInfo.city}</span>
-                <span className="text-slate-300">|</span>
-                <span className="text-slate-800 font-medium">Suggested: {geoInfo.suggestedLangLabel}</span>
-              </div>
-            )}
-            <span className="hidden lg:inline text-xs text-slate-400 font-mono">
-              Lang: {currentUI.name}
-            </span>
+            {/* Interactive Dual-Language Switcher (Local City Language + Universal English) */}
+            <div className="flex items-center bg-slate-100/90 p-0.5 rounded-lg border border-slate-200 text-xs">
+              {/* Local City Language Button (e.g. 🇫🇷 Français (Paris) / 🇮🇳 हिंदी (Patna)) */}
+              {geoInfo && geoInfo.suggestedLang && geoInfo.suggestedLang !== "en" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    hasManuallyChosen.current = true;
+                    setLang(geoInfo.suggestedLang);
+                  }}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
+                    lang === geoInfo.suggestedLang
+                      ? "bg-white text-slate-900 shadow-2xs font-semibold"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                  title={`Switch to ${geoInfo.suggestedLangLabel} (${geoInfo.city})`}
+                >
+                  <span>{geoInfo.flag || "📍"}</span>
+                  <span className="truncate max-w-[120px]">
+                    {geoInfo.suggestedLangLabel?.split(" ")[0] || geoInfo.city}
+                  </span>
+                </button>
+              )}
 
-            <select
-              aria-label="Select Language"
-              value={lang}
-              onChange={e => {
-                const newLang = e.target.value as SupportedLang;
-                setLang(newLang);
-                localStorage.setItem("ritual_lang", newLang);
-              }}
-              className="border border-slate-200 rounded-lg px-2 sm:px-2.5 py-1 text-xs bg-white font-medium focus:outline-none focus:border-slate-900"
-            >
-              <option value="en">English</option>
-              <option value="hi">हिंदी</option>
-              <option value="de">Deutsch</option>
-              <option value="fr">Français</option>
-              <option value="es">Español</option>
-            </select>
+              {/* Universal English Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  hasManuallyChosen.current = true;
+                  setLang("en");
+                }}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
+                  lang === "en"
+                    ? "bg-white text-slate-900 shadow-2xs font-semibold"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+                title="Switch to Universal English"
+              >
+                <span>🌐</span>
+                <span>English</span>
+              </button>
+
+              {/* Global Language Selector Dropdown (Quick Access to Any Other Language) */}
+              <select
+                aria-label="Select Another Language"
+                value={lang}
+                onChange={e => {
+                  hasManuallyChosen.current = true;
+                  setLang(e.target.value);
+                }}
+                className="bg-transparent text-slate-400 hover:text-slate-700 pl-1 pr-1.5 py-1 text-xs focus:outline-none cursor-pointer border-l border-slate-200 ml-0.5 font-medium"
+                title="More languages"
+              >
+                <option value="en">🌐 English</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="hi">🇮🇳 हिंदी</option>
+                <option value="de">🇩🇪 Deutsch</option>
+                <option value="es">🇪🇸 Español</option>
+              </select>
+            </div>
           </div>
         </div>
       </header>
@@ -512,7 +613,7 @@ export default function HomePage() {
             </p>
 
             <div className="mt-4 sm:mt-6 flex flex-wrap gap-1.5 sm:gap-2">
-              {currentUI.chips.map((chip, idx) => (
+              {(currentUI.chips || []).map((chip: string, idx: number) => (
                 <button
                   key={idx}
                   onClick={() => handleSend(chip)}
@@ -527,20 +628,32 @@ export default function HomePage() {
           {/* Chat Container */}
           <div className="flex flex-col gap-2 w-full min-w-0 h-[520px] sm:h-[600px] lg:h-[640px] max-h-[85vh]">
             {showGeoToast && geoInfo && (
-              <div className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs text-slate-700 animate-fadeIn shadow-xs">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-sm flex-shrink-0">📍</span>
+              <div className="px-3 sm:px-3.5 py-2 rounded-xl bg-slate-900 text-white flex items-center justify-between text-xs animate-fadeIn shadow-md">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-sm flex-shrink-0">{geoInfo.flag || "📍"}</span>
                   <span className="truncate">
-                    Connected from <b>{geoInfo.city}</b> ({geoInfo.suggestedLangLabel})
+                    Connected from <b>{geoInfo.city}</b>. Local language: <b>{geoInfo.suggestedLangLabel}</b>
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowGeoToast(false)}
-                  className="text-slate-400 hover:text-slate-800 ml-2 font-bold cursor-pointer flex-shrink-0"
-                >
-                  ✕
-                </button>
+                <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      hasManuallyChosen.current = true;
+                      setLang(lang === "en" ? geoInfo.suggestedLang : "en");
+                    }}
+                    className="px-2 py-0.5 rounded bg-white/15 hover:bg-white/25 text-white text-[11px] font-medium transition cursor-pointer whitespace-nowrap"
+                  >
+                    {lang === "en" ? `${geoInfo.flag || ""} Switch to ${geoInfo.suggestedLangLabel?.split(" ")[0] || "Local"}` : "Switch to English 🌐"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowGeoToast(false)}
+                    className="text-white/60 hover:text-white font-bold cursor-pointer ml-1"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
             )}
             <div className="glow flex-1 min-h-0 w-full">
@@ -638,7 +751,7 @@ export default function HomePage() {
                 <div id="log" ref={chatFeedRef} className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
                   {messages.map((msg, idx) => (
                     <div key={idx} className={`msg ${msg.role === "assistant" ? "bot" : "usr"}`}>
-                      <div>{msg.content}</div>
+                      <FormattedMessage content={msg.content} />
                       {msg.role === "assistant" && (
                         <div className="mt-2.5 flex items-center justify-start border-t border-slate-100 pt-1.5">
                           <button

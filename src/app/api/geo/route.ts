@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 const geminiApiKey = process.env.GEMINI_API_KEY;
 
@@ -122,6 +122,11 @@ Tasks:
       suggestedLangLabel = "Español (Spanish)";
     }
 
+    const FLAG_MAP: Record<string, string> = {
+      IN: "🇮🇳", FR: "🇫🇷", DE: "🇩🇪", ES: "🇪🇸", US: "🇺🇸", GB: "🇬🇧", IT: "🇮🇹", JP: "🇯🇵", AE: "🇦🇪", CA: "🇨🇦", AU: "🇦🇺", BR: "🇧🇷", NL: "🇳🇱", RU: "🇷🇺", CN: "🇨🇳"
+    };
+    const flag = FLAG_MAP[countryCode] || "📍";
+
     return NextResponse.json({
       success: true,
       city,
@@ -130,6 +135,7 @@ Tasks:
       countryCode,
       suggestedLang,
       suggestedLangLabel,
+      flag,
       localNotes,
       mode: "dynamic-ai-detected"
     });
